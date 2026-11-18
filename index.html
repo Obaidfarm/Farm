@@ -79,6 +79,7 @@ td.n{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
     <a href="#entry" data-v="entry">النفوق</a>
     <a href="#sfeed" data-v="sfeed">علف العنابر</a>
     <a href="#feed" data-v="feed">فواتير العلف</a>
+    <a href="#weights" data-v="weights">الأوزان</a>
     <a href="#dash" data-v="dash" class="adm">المتابعة</a>
     <a href="#settings" data-v="settings" class="adm">الإعدادات</a>
   </nav>
@@ -120,6 +121,21 @@ td.n{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
       </form>
       <h2 id="lastT">آخر 7 أيام</h2>
       <div class="card scroll"><table class="stack"><thead><tr><th>التاريخ</th><th>النفوق</th><th>العلف</th><th>ملاحظات</th></tr></thead><tbody id="last"></tbody></table></div>
+    </section>
+
+    <section class="view" id="v-weights">
+      <form class="card" id="wF" style="display:grid;gap:14px">
+        <div id="pickWrap3"><div class="note" style="margin-bottom:6px">المزرعة</div><div class="farms" id="pick3"></div></div>
+        <div><div class="note" style="margin-bottom:6px">عمر الوزن</div><div class="farms" id="wAges" style="grid-template-columns:repeat(4,minmax(0,1fr))"></div></div>
+        <div class="two"><label>تاريخ الوزن<input type="date" id="wD"></label><label>وحدة الوزن<select id="wU"><option value="g">جرام</option><option value="kg">كيلو</option></select></label></div>
+        <div class="note" id="wHint"></div>
+        <div id="wGrid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px"></div>
+        <div class="card" id="wSum" style="background:var(--bg);display:flex;gap:18px;flex-wrap:wrap"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="wSave" type="submit">حفظ الوزن</button><button class="ghost" type="button" id="wX">تنزيل الأوزان Excel</button></div>
+        <div class="msg" id="wMsg"></div>
+      </form>
+      <h2>متوسط الوزن في كل فترة</h2>
+      <div class="card scroll"><table class="sheds" id="wTable"></table></div>
     </section>
 
     <section class="view" id="v-dash">
@@ -168,7 +184,7 @@ td.n{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
           <label>علف ثاني (طن)<input type="number" id="i2" min="0" step="0.01" inputmode="decimal"></label>
           <label>علف ثالث (طن)<input type="number" id="i3" min="0" step="0.01" inputmode="decimal"></label>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" type="submit">إضافة الفاتورة</button><button class="ghost" type="button" id="invX">تنزيل سجل العلف Excel</button></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" type="submit">إضافة الفاتورة</button><button class="ghost" type="button" id="invX">تنزيل فواتير هذه المزرعة Excel</button><button class="ghost adm" type="button" id="invXAll">تنزيل فواتير المزارع الثلاث Excel</button><button class="ghost adm" type="button" id="invImp">إدخال فواتير ملف Excel السابق</button></div>
         <div class="msg" id="iMsg"></div>
       </form>
       <h2 id="invT">فواتير العلف</h2>
@@ -211,7 +227,8 @@ const showErr=t=>{const c=document.getElementById('conn');if(c){c.className='msg
 addEventListener('error',e=>showErr(e.message||e));
 addEventListener('unhandledrejection',e=>showErr(e.reason?.message||e.reason));
 const IDS=['f1','f2','f3'];
-const DEF={f1:{name:'Khulies 5',birds:0,start:'2026-11-03',openDate:'2026-11-19',shedCount:15,sheds:[{birds:0,start:'2026-11-03'},{birds:0,start:'2026-11-03'},{birds:0,start:'2026-11-03'},{birds:0,start:'2026-11-03'},{birds:0,start:'2026-11-03'},{birds:0,start:'2026-11-03'},{birds:0,start:'2026-11-03'},{birds:0,start:'2026-11-04'},{birds:0,start:'2026-11-04'},{birds:0,start:'2026-11-04'},{birds:0,start:'2026-11-04'},{birds:0,start:'2026-11-04'},{birds:0,start:'2026-11-04'},{birds:0,start:'2026-11-04'},{birds:0,start:'2026-11-04'}]},f2:{name:'Rabig 3',birds:0,start:'2026-11-06',openDate:'2026-11-19',shedCount:12,sheds:[{birds:0,start:'2026-11-06'},{birds:0,start:'2026-11-06'},{birds:0,start:'2026-11-06'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-07'},{birds:0,start:'2026-11-07'},{birds:0,start:'2026-11-07'}]},f3:{name:'Guided 4',birds:0,start:'2026-11-09',openDate:'2026-11-19',shedCount:10,sheds:[{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'}]}};
+const DEF={f1:{name:'Khulies 5',birds:0,start:'2026-11-04',openDate:'2026-11-19',shedCount:15,sheds:[{birds:0,start:'2026-11-04',feed0:217},{birds:0,start:'2026-11-04',feed0:197},{birds:0,start:'2026-11-04',feed0:197},{birds:0,start:'2026-11-04',feed0:197},{birds:0,start:'2026-11-04',feed0:197},{birds:0,start:'2026-11-04',feed0:197},{birds:0,start:'2026-11-04',feed0:197},{birds:0,start:'2026-11-05',feed0:201},{birds:0,start:'2026-11-05',feed0:201},{birds:0,start:'2026-11-05',feed0:201},{birds:0,start:'2026-11-05',feed0:202},{birds:0,start:'2026-11-05',feed0:202},{birds:0,start:'2026-11-05',feed0:222},{birds:0,start:'2026-11-05',feed0:202},{birds:0,start:'2026-11-05',feed0:202}]},f2:{name:'Rabig 3',birds:0,start:'2026-11-07',openDate:'2026-11-19',shedCount:12,sheds:[{birds:0,start:'2026-11-07'},{birds:0,start:'2026-11-07'},{birds:0,start:'2026-11-07'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-08'}]},f3:{name:'Guided 4',birds:0,start:'2026-11-10',openDate:'2026-11-19',shedCount:10,sheds:[{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-11'},{birds:0,start:'2026-11-11'},{birds:0,start:'2026-11-11'},{birds:0,start:'2026-11-11'},{birds:0,start:'2026-11-11'}]}};
+const OLD_DATES={f1:'2026-11-03,'.repeat(7)+'2026-11-04,'.repeat(8),f2:'2026-11-06,'.repeat(3)+'2026-11-08,'.repeat(6)+'2026-11-07,'.repeat(3),f3:'2026-11-09,'.repeat(5)+'2026-11-10,'.repeat(5)};
 let invoices=[],invFarm='f1',farms=structuredClone(DEF),entries=[],admin=false,myFarm=null,cur='f1',chartKey='mortality',filter='all',unsubs=[];
 
 const app=initializeApp(firebaseConfig);
@@ -232,7 +249,7 @@ const num=v=>{const n=+v;return isFinite(n)&&v!==''&&v!=null?n:0};
 
 /* ---------- farm / shed model ---------- */
 function shedList(id){const f=farms[id],n=Math.max(1,Math.min(50,Math.round(+f.shedCount||10)));
-  return [...Array(n)].map((_,k)=>({birds:+(f.sheds?.[k]?.birds)||0,feed0:+(f.sheds?.[k]?.feed0)||0,start:f.sheds?.[k]?.start||f.start||''}))}
+  return [...Array(n)].map((_,k)=>({birds:+(f.sheds?.[k]?.birds)||0,feed0:+(f.sheds?.[k]?.feed0??DEF[id].sheds?.[k]?.feed0)||0,start:f.sheds?.[k]?.start||f.start||''}))}
 const unitOf=id=>farms[id].unit||'كيس';
 function received(id){return +farms[id].birds||shedList(id).reduce((a,x)=>a+x.birds,0)}
 const hasOpen=id=>shedList(id).some(x=>x.birds>0);
@@ -243,7 +260,7 @@ const shedTotal=x=>num(x?.n)+num(x?.m)+num(x?.i);
 function shedRows(id,date){const sl=shedList(id),e=entryOf(id,date);
   return sl.map((s,k)=>{const x=e?.sheds?.[k];
     let cum=0,fin=0,fout=0;const od=openDate(id)||s.start;for(const en of entries)if(en.farm===id&&en.date<=date&&(!od||en.date>=od)){cum+=shedTotal(en.sheds?.[k]);fin+=num(en.sheds?.[k]?.r);fout+=num(en.sheds?.[k]?.f)}
-    return{no:k+1,old:s.start&&date>=s.start?dayDiff(date,s.start):null,n:x?.n??null,m:x?.m??null,i:x?.i??null,
+    return{no:k+1,old:s.start&&date>=s.start?dayDiff(date,s.start)+1:null,n:x?.n??null,m:x?.m??null,i:x?.i??null,
       r:x?.r??null,f:x?.f??null,feedRem:s.feed0||fin||fout?Math.round((s.feed0+fin-fout)*100)/100:null,total:x?shedTotal(x):null,balance:s.birds&&(!openDate(id)||date>=openDate(id))?s.birds-cum:null}})}
 
 /* ---------- auth ---------- */
@@ -259,18 +276,18 @@ onAuthStateChanged(auth,u=>{unsubs.forEach(f=>f());unsubs=[];entries=[];invoices
   $('#conn').textContent='';
   $('#login').classList.add('hide');$('#app').classList.remove('hide');$('#nav').classList.remove('hide');
   document.querySelectorAll('.adm').forEach(a=>a.classList.toggle('hide',!admin));
-  $('#pickWrap').classList.toggle('hide',!admin);$('#pickWrap2').classList.toggle('hide',!admin);
+  $('#pickWrap').classList.toggle('hide',!admin);$('#pickWrap2').classList.toggle('hide',!admin);$('#pickWrap3').classList.toggle('hide',!admin);
   cur=myFarm||cur;invFarm=myFarm||invFarm;$('#invPickWrap').classList.toggle('hide',!admin);
   $('#whoami').textContent=(admin?'المدير':nm(myFarm))+' · '+u.email;
   all();renderShedForm();renderFeedForm();start();show();});
 
 function start(){
   $('#conn').className='msg';$('#conn').textContent='جارٍ تحميل البيانات…';
-  unsubs.push(onSnapshot(doc(db,'settings','farms'),sn=>{if(sn.exists()){const v=sn.data();IDS.forEach(id=>farms[id]={...DEF[id],...(v[id]||{})})}
+  unsubs.push(onSnapshot(doc(db,'settings','farms'),sn=>{if(sn.exists()){const v=sn.data();IDS.forEach(id=>{farms[id]={...DEF[id],...(v[id]||{})};const sv=v[id]?.sheds;if(sv&&sv.map(x=>x.start+',').join('')===OLD_DATES[id])farms[id].sheds=sv.map((x,k)=>({...x,start:DEF[id].sheds[k]?.start||x.start}))})}
     $('#whoami').textContent=(admin?'المدير':nm(myFarm))+' · '+(auth.currentUser?.email||'');
     all();if(!document.activeElement?.closest('#f'))renderShedForm();if(!document.activeElement?.closest('#f2'))renderFeedForm()},()=>{}));
   const iq=admin?collection(db,'invoices'):query(collection(db,'invoices'),where('farm','==',myFarm));
-  unsubs.push(onSnapshot(iq,sn=>{invoices=sn.docs.map(x=>({id:x.id,...x.data()}));renderInv()},e=>{$('#invTable').innerHTML=`<tr><td class="empty">${e.code==='permission-denied'?'لا توجد صلاحية لفواتير العلف — حدّث قواعد Firestore.':esc(e.message)}</td></tr>`}));
+  unsubs.push(onSnapshot(iq,sn=>{invoices=sn.docs.map(x=>({id:x.id,...x.data()}));renderInv();if(!document.activeElement?.closest('#wF'))renderWeights();else renderWTable()},e=>{$('#invTable').innerHTML=`<tr><td class="empty">${e.code==='permission-denied'?'لا توجد صلاحية لفواتير العلف — حدّث قواعد Firestore.':esc(e.message)}</td></tr>`}));
   const q=admin?collection(db,'entries'):query(collection(db,'entries'),where('farm','==',myFarm));
   unsubs.push(onSnapshot(q,{includeMetadataChanges:true},sn=>{
     entries=sn.docs.map(x=>({id:x.id,pending:x.metadata.hasPendingWrites,...x.data()}));
@@ -280,16 +297,16 @@ function start(){
 }
 
 /* ---------- views ---------- */
-function show(){let v=location.hash.slice(1);if(!['entry','sfeed','dash','settings','feed'].includes(v)||(!admin&&!['entry','sfeed','feed'].includes(v)))v=admin?'dash':'entry';
+function show(){let v=location.hash.slice(1);if(!['entry','sfeed','dash','settings','feed','weights'].includes(v)||(!admin&&!['entry','sfeed','feed','weights'].includes(v)))v=admin?'dash':'entry';
   document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
   document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.dataset.v===v));if(v==='dash')drawChart()}
 addEventListener('hashchange',show);
 
 /* ---------- entry (per shed) ---------- */
 $('#d').value=today();$('#d').max=today();$('#d2').value=today();$('#d2').max=today();$('#xd').value=today();$('#xd').max=today();
-function renderPick(){$('#pick2').innerHTML=$('#pick').innerHTML=IDS.map(id=>`<button type="button" data-id="${id}" style="--c:${col(id)}" class="${id===cur?'on':''}">${esc(nm(id))}</button>`).join('');
+function renderPick(){$('#pick3').innerHTML=$('#pick2').innerHTML=$('#pick').innerHTML=IDS.map(id=>`<button type="button" data-id="${id}" style="--c:${col(id)}" class="${id===cur?'on':''}">${esc(nm(id))}</button>`).join('');
   $('#lastT').textContent='آخر 7 أيام — '+nm(cur)}
-['#pick','#pick2'].forEach(s=>$(s).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cur=b.dataset.id;renderPick();renderShedForm();renderFeedForm();renderLast()}));
+['#pick','#pick2','#pick3'].forEach(s=>$(s).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cur=b.dataset.id;renderPick();renderWeights();renderShedForm();renderFeedForm();renderLast()}));
 $('#d').addEventListener('change',renderShedForm);$('#d2').addEventListener('change',renderFeedForm);
 function renderShedForm(){const date=$('#d').value||today(),rows=shedRows(cur,date),e=entryOf(cur,date);
   const v=x=>x==null?'':x;
@@ -348,7 +365,7 @@ function stats(id){const st=farmStart(id),list=entries.filter(e=>e.farm===id&&(!
   if(hasOpen(id)&&today()>=openDate(id)){alive=shedRows(id,today()).reduce((a,r)=>a+(r.balance||0),0);mort=birds?Math.max(0,birds-alive):list.reduce((s,e)=>s+(+e.mortality||0),0)}
   else{mort=list.reduce((s,e)=>s+(+e.mortality||0),0);alive=Math.max(0,birds-mort)}
   const from=addDays(today(),-6),w=list.filter(e=>e.date>=from).reduce((s,e)=>s+(+e.mortality||0),0);
-  const age=st?dayDiff(today(),st):null;
+  const age=st?dayDiff(today(),st)+1:null;
   return{mort,feed,alive,birds,pct:birds>0?mort/birds*100:null,perBird:alive>0?feed/alive:null,t,w,age}}
 function renderDash(){if(!admin)return;let T={birds:0,mort:0,alive:0,feed:0};
   $('#cards').innerHTML=IDS.map(id=>{const s=stats(id);T.birds+=s.birds;T.mort+=s.mort;T.alive+=s.alive;T.feed+=s.feed;
@@ -383,7 +400,7 @@ function reportData(id,date){const rows=shedRows(id,date),e=entryOf(id,date),z=v
 const HEAD=['No.of shed','old','night','morning','isolation','total','balance'];
 async function downloadXlsx(ids,date,msgEl,invOnly){
   msgEl.className='msg';msgEl.textContent='جارٍ تجهيز الملف…';
-  const fname=invOnly?`علف-${nm(ids[0])}-${date}.xlsx`:`تقرير-${ids.length===1?nm(ids[0])+'-':''}${date}.xlsx`;
+  const fname=invOnly?(ids.length>1?`فواتير-العلف-المزارع-${date}.xlsx`:`علف-${nm(ids[0])}-${date}.xlsx`):`تقرير-${ids.length===1?nm(ids[0])+'-':''}${date}.xlsx`;
   const feedRows=id=>shedRows(id,date).map(r=>[r.no,r.r==null?'':num(r.r),r.f==null?'':num(r.f),r.feedRem==null?'':r.feedRem]);
   const invRows=id=>invList(id).filter(x=>x.date<=date).map(x=>[x.date.slice(8,10)+'/'+x.date.slice(5,7)+'/'+x.date.slice(0,4),x.no||'',num(x.t1),num(x.t2),num(x.t3)]);
   try{
@@ -398,7 +415,7 @@ async function downloadXlsx(ids,date,msgEl,invOnly){
       const L=invRows(id);L.forEach((row,k)=>{putRow(ws,4+k,row,false,false,1,'#,##0.00');const r=4+k;ws.getCell(r,6).value={formula:`SUM(C${r}:E${r})`};ws.getCell(r,6).numFmt='#,##0.00';ws.getCell(r,6).border=B;ws.getCell(r,6).alignment={horizontal:'center'}});
       const tr=4+L.length;putRow(ws,tr,['المجموع','','','','',''],true,true);
       ['C','D','E','F'].forEach(c=>{const x=ws.getCell(c+tr);x.value=L.length?{formula:`SUM(${c}4:${c}${tr-1})`}:0;x.numFmt='#,##0.00'})};
-    if(invOnly){invSheet(ids[0])}else for(const id of ids){const R=reportData(id,date);
+    if(invOnly){ids.forEach(invSheet)}else for(const id of ids){const R=reportData(id,date);
       const ws=wb.addWorksheet(sheetName(nm(id)));ws.columns=[14,9,10,11,11,10,13].map(w=>({width:w}));
       ws.mergeCells('A1:G1');const t=ws.getCell('A1');t.value=R.name;t.font={name:'Arial',size:14,bold:true,underline:true};t.alignment={horizontal:'center'};
       ws.getCell('B2').value='Day/';ws.getCell('C2').value=R.day;ws.getCell('B3').value='Date/';ws.getCell('C3').value=R.dateStr;['B2','B3','C2','C3'].forEach(a=>ws.getCell(a).font={name:'Arial',size:12,bold:a[0]==='B'});
@@ -415,7 +432,7 @@ async function downloadXlsx(ids,date,msgEl,invOnly){
     const td=(v,b)=>`<td style="border:1px solid #000;text-align:center;${b?'font-weight:bold;background:#E8EAF6':''}">${esc(v)}</td>`;
     const tbl=(head,rows)=>`<table style="border-collapse:collapse;font-family:Arial"><tr>${head.map(x=>td(x,1)).join('')}</tr>${rows.map(r=>`<tr>${r.map(v=>td(v)).join('')}</tr>`).join('')}</table>`;
     const invHtml=id=>`<h3 style="text-align:center">علف ${esc(nm(id))}</h3>`+tbl(['التاريخ','رقم الفاتورة','علف أول','علف ثاني','علف ثالث'],invRows(id));
-    const html='<html><head><meta charset="utf-8"></head><body>'+(invOnly?invHtml(ids[0]):ids.map(id=>{const R=reportData(id,date);
+    const html='<html><head><meta charset="utf-8"></head><body>'+(invOnly?ids.map(invHtml).join('<br>'):ids.map(id=>{const R=reportData(id,date);
       return `<h3 style="text-align:center;text-decoration:underline">${esc(R.name)}</h3><p>Day/ ${esc(R.day)}<br>Date/ ${esc(R.dateStr)}</p>`+tbl(HEAD,[...R.body,R.total])+
         `<p>Notes: ${esc(R.notes)}</p><p><b>Feed (${esc(unitOf(id))})</b></p>`+tbl(['No.of shed','received','consumed','remaining'],feedRows(id))+(invList(id).length?invHtml(id):'')+'<br>'}).join(''))+'</body></html>';
     save(new Blob(['﻿'+html],{type:'application/vnd.ms-excel'}),fname.replace('.xlsx','.xls'));
@@ -445,8 +462,12 @@ new ResizeObserver(drawChart).observe(s);
 
 /* ---------- feed invoices ---------- */
 $('#iD').value=today();
+const PREV_INV=[["f2", "2026-11-04", "552207", 24.65, 0.0, 0.0], ["f2", "2026-11-05", "552234", 25.48, 0.0, 0.0], ["f2", "2026-11-07", "", 24.06, 0.0, 0.0], ["f2", "2026-11-09", "552414", 19.8, 0.0, 0.0], ["f3", "2026-11-06", "552238", 25.18, 0.0, 0.0], ["f3", "2026-11-07", "", 23.25, 0.0, 0.0], ["f3", "2026-11-10", "552503", 24.52, 0.0, 0.0], ["f1", "2026-10-31", "551970", 24.97, 0.0, 0.0], ["f1", "2026-11-01", "552032", 24.71, 0.0, 0.0], ["f1", "2026-11-03", "552127", 25.45, 0.0, 0.0], ["f1", "2026-11-04", "552206", 25.91, 0.0, 0.0], ["f1", "2026-11-06", "552273", 24.84, 0.0, 0.0], ["f1", "2026-11-07", "552349", 24.84, 0.0, 0.0], ["f1", "2026-11-08", "552370", 0.0, 24.91, 0.0], ["f1", "2026-11-08", "552372", 0.0, 25.35, 0.0], ["f1", "2026-11-10", "552473", 0.0, 24.39, 0.0], ["f1", "2026-11-11", "552535", 0.0, 25.91, 0.0], ["f1", "2026-11-12", "552616", 0.0, 25.32, 0.0], ["f1", "2026-11-13", "552641", 0.0, 25.49, 0.0], ["f1", "2026-11-14", "552687", 0, 25.21, 0], ["f1", "2026-11-15", "552727", 0, 25.2, 0], ["f1", "2026-11-16", "552794", 0, 25.6, 0], ["f1", "2026-11-17", "552882", 0, 23.84, 0], ["f1", "2026-11-18", "552883", 0, 24.66, 0], ["f1", "2026-11-18", "552925", 0, 24.84, 0]];
+$('#invImp').addEventListener('click',async()=>{const m=$('#iMsg');m.className='msg';m.textContent='جارٍ إدخال الفواتير…';let n=0;
+  try{for(const [farm,date,no,t1,t2,t3] of PREV_INV){await setDoc(doc(db,'invoices',farm+'_'+(no||date.replace(/-/g,''))),{farm,date,no,t1,t2,t3,by:auth.currentUser.email,at:new Date().toISOString()});n++}
+    m.className='msg ok';m.textContent=`تم إدخال ${n} فاتورة من ملفك (رابغ وقديد وخليص).`}catch(x){m.className='msg bad';m.textContent=x.code==='permission-denied'?'لا توجد صلاحية — حدّث قواعد Firestore.':'تعذّر: '+x.message}});
 const r2=x=>Math.round(num(x)*100)/100;
-function invList(id){return invoices.filter(x=>x.farm===id).sort((a,b)=>a.date.localeCompare(b.date)||String(a.no).localeCompare(String(b.no)))}
+function invList(id){return invoices.filter(x=>x.farm===id&&!x.kind).sort((a,b)=>a.date.localeCompare(b.date)||String(a.no).localeCompare(String(b.no)))}
 function renderInv(){
   $('#invPick').innerHTML=IDS.map(id=>`<button type="button" data-id="${id}" style="--c:${col(id)}" class="${id===invFarm?'on':''}">${esc(nm(id))}</button>`).join('');
   $('#invT').textContent='فواتير علف '+nm(invFarm);
@@ -465,7 +486,55 @@ $('#invF').addEventListener('submit',async e=>{e.preventDefault();const m=$('#iM
 $('#invTable').addEventListener('click',async e=>{const b=e.target.closest('[data-idel]');if(!b)return;
   if(b.dataset.c!=='1'){b.dataset.c='1';b.textContent='تأكيد';b.classList.add('red');return}
   b.disabled=true;try{await deleteDoc(doc(db,'invoices',b.dataset.idel))}catch(x){b.disabled=false;b.textContent='تعذّر'}});
-$('#invX').addEventListener('click',()=>downloadXlsx([invFarm],today(),$('#iMsg'),true));
+$('#invX').addEventListener('click',()=>downloadXlsx([invFarm],today(),$('#iMsg'),true));$('#invXAll').addEventListener('click',()=>downloadXlsx(IDS,today(),$('#iMsg'),true));
+
+/* ---------- weights ---------- */
+const AGES=[7,14,21,28],SAMPLE=240;
+const wCfg=a=>a===7?{per:10,cells:24}:{per:5,cells:48};
+let wAge=7;
+const wDoc=(id,a)=>invoices.find(x=>x.kind==='w'&&x.farm===id&&x.age===a);
+const wStats=d=>{if(!d)return null;const c=(d.cells||[]).map(num),sum=c.reduce((a,b)=>a+b,0),filled=(d.cells||[]).filter(v=>v!==''&&v!=null).length,cf=wCfg(d.age);
+  const avg=sum/SAMPLE,g=d.unit==='kg'?avg*1000:avg;return{sum,filled,cells:cf.cells,avg,g,unit:d.unit||'g'}};
+const fmtW=(v,u)=>u==='kg'?fmt(v,3)+' كجم':fmt(v,1)+' جم';
+function renderWeights(){if(!$('#wGrid'))return;
+  $('#wAges').innerHTML=AGES.map(a=>`<button type="button" data-a="${a}" class="${a===wAge?'on':''}" style="--c:var(--green)">عمر ${a}</button>`).join('');
+  const d=wDoc(cur,wAge),cf=wCfg(wAge),vals=d?.cells||[];
+  $('#wD').value=d?.date||today();$('#wU').value=d?.unit||'g';
+  $('#wHint').textContent=`عمر ${wAge}: ${cf.cells} خانة، كل خانة وزن ${cf.per} دجاجات = ${cf.cells*cf.per} دجاجة. المتوسط = مجموع الخانات ÷ ${SAMPLE}.`;
+  $('#wGrid').innerHTML=[...Array(cf.cells)].map((_,k)=>`<label style="gap:2px;font-size:12px">${k+1}<input type="number" min="0" step="any" inputmode="decimal" data-k="${k}" value="${vals[k]??''}" style="min-height:42px;padding:6px;text-align:center"></label>`).join('');
+  recalcW();renderWTable()}
+function readW(){return[...$('#wGrid').querySelectorAll('input')].map(x=>x.value===''?'':Math.round(num(x.value)*1000)/1000)}
+function recalcW(){const s=wStats({age:wAge,cells:readW(),unit:$('#wU').value});
+  $('#wSum').innerHTML=`<div class="note">مجموع الخانات<b style="display:block;font-size:20px;color:var(--ink)">${fmt(s.sum,3)}</b></div><div class="note">الخانات المعبّاة<b style="display:block;font-size:20px;color:var(--ink)">${s.filled} / ${s.cells}</b></div><div class="note">متوسط وزن الدجاجة (÷${SAMPLE})<b style="display:block;font-size:24px;color:var(--green)">${s.sum?fmtW(s.avg,s.unit):'—'}</b></div>`}
+$('#wAges').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;wAge=+b.dataset.a;renderWeights()});
+$('#wGrid').addEventListener('input',recalcW);$('#wU').addEventListener('change',recalcW);
+$('#wF').addEventListener('submit',async e=>{e.preventDefault();const m=$('#wMsg');const cells=readW();
+  if(!cells.some(v=>v!=='')){m.className='msg bad';m.textContent='اكتب أوزان الخانات أولاً.';return}
+  m.className='msg';m.textContent='جارٍ الحفظ…';
+  try{await setDoc(doc(db,'invoices','w_'+cur+'_'+wAge),{kind:'w',farm:cur,age:wAge,date:$('#wD').value||today(),unit:$('#wU').value,cells,by:auth.currentUser.email,at:new Date().toISOString()});
+    const s=wStats({age:wAge,cells,unit:$('#wU').value});m.className='msg ok';m.textContent=`تم حفظ وزن عمر ${wAge} لـ${nm(cur)}: المتوسط ${fmtW(s.avg,s.unit)}.`}
+  catch(x){m.className='msg bad';m.textContent=x.code==='permission-denied'?'لا توجد صلاحية — حدّث قواعد Firestore (القواعد اللي آخرها invoices).':'تعذّر الحفظ: '+x.message}});
+function renderWTable(){const ids=admin?IDS:[cur];
+  $('#wTable').innerHTML=`<thead><tr><th>المزرعة</th>${AGES.map(a=>`<th>عمر ${a}</th>`).join('')}</tr></thead><tbody>`+
+   ids.map(id=>`<tr><td><b>${esc(nm(id))}</b></td>${AGES.map(a=>{const s=wStats(wDoc(id,a));return `<td>${s&&s.sum?fmtW(s.avg,s.unit):'—'}</td>`}).join('')}</tr>`).join('')+'</tbody>'}
+$('#wX').addEventListener('click',async()=>{const m=$('#wMsg'),ids=admin?IDS:[cur];m.className='msg';m.textContent='جارٍ تجهيز الملف…';
+  const block=id=>AGES.map(a=>{const d=wDoc(id,a);if(!d)return null;const s=wStats(d),cf=wCfg(a);return{a,d,s,cf}}).filter(Boolean);
+  try{if(!window.ExcelJS)throw 0;const wb=new ExcelJS.Workbook();
+    const thin={style:'thin',color:{argb:'FF000000'}},B={top:thin,left:thin,bottom:thin,right:thin};
+    const sum=wb.addWorksheet('ملخص الأوزان');sum.columns=[18,14,14,14,14].map(w=>({width:w}));
+    [['المزرعة',...AGES.map(a=>'عمر '+a)],...ids.map(id=>[nm(id),...AGES.map(a=>{const s=wStats(wDoc(id,a));return s&&s.sum?Math.round((s.unit==='kg'?s.avg:s.avg)*1000)/1000:''})])].forEach((r,i)=>r.forEach((v,c)=>{const x=sum.getCell(i+1,c+1);x.value=v===''?null:v;x.border=B;x.font={name:'Arial',bold:i===0};x.alignment={horizontal:'center'}}));
+    for(const id of ids)for(const {a,d,s,cf} of block(id)){const ws=wb.addWorksheet((nm(id).replace(/[\\\/\?\*\[\]:]/g,' ').slice(0,22)+' عمر '+a));ws.columns=[10,14].map(w=>({width:w}));
+      ws.getCell('A1').value=`${nm(id)} - عمر ${a} - ${d.date}`;ws.getCell('A1').font={name:'Arial',bold:true,size:13};
+      ws.getCell('A3').value='خانة';ws.getCell('B3').value=`وزن ${cf.per} دجاجات (${d.unit==='kg'?'كجم':'جم'})`;['A3','B3'].forEach(c=>{ws.getCell(c).font={name:'Arial',bold:true};ws.getCell(c).border=B});
+      cf.cells&&[...Array(cf.cells)].forEach((_,k)=>{ws.getCell(4+k,1).value=k+1;ws.getCell(4+k,2).value=d.cells?.[k]===''||d.cells?.[k]==null?null:num(d.cells[k]);[1,2].forEach(c=>{ws.getCell(4+k,c).border=B;ws.getCell(4+k,c).alignment={horizontal:'center'}})});
+      const r=4+cf.cells;ws.getCell(r,1).value='المجموع';ws.getCell(r,2).value={formula:`SUM(B4:B${r-1})`};ws.getCell(r+1,1).value='المتوسط ÷'+SAMPLE;ws.getCell(r+1,2).value={formula:`B${r}/${SAMPLE}`};ws.getCell(r+1,2).numFmt='0.000';
+      [r,r+1].forEach(rr=>[1,2].forEach(c=>{ws.getCell(rr,c).font={name:'Arial',bold:true};ws.getCell(rr,c).border=B}))}
+    const buf=await wb.xlsx.writeBuffer();save(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`الأوزان-${today()}.xlsx`)}
+  catch(err){const td=(v,b)=>`<td style="border:1px solid #000;text-align:center;${b?'font-weight:bold':''}">${esc(v)}</td>`;
+    const html='<html><head><meta charset="utf-8"></head><body><h3>ملخص الأوزان</h3><table style="border-collapse:collapse"><tr>'+['المزرعة',...AGES.map(a=>'عمر '+a)].map(x=>td(x,1)).join('')+'</tr>'+ids.map(id=>'<tr>'+td(nm(id),1)+AGES.map(a=>{const s=wStats(wDoc(id,a));return td(s&&s.sum?fmtW(s.avg,s.unit):'')}).join('')+'</tr>').join('')+'</table>'+
+      ids.map(id=>block(id).map(({a,d,s,cf})=>`<h4>${esc(nm(id))} - عمر ${a} - ${esc(d.date)}</h4><table style="border-collapse:collapse"><tr>${td('خانة',1)}${td('وزن '+cf.per+' دجاجات',1)}</tr>`+[...Array(cf.cells)].map((_,k)=>`<tr>${td(k+1)}${td(d.cells?.[k]??'')}</tr>`).join('')+`<tr>${td('المجموع',1)}${td(fmt(s.sum,3),1)}</tr><tr>${td('المتوسط ÷'+SAMPLE,1)}${td(fmtW(s.avg,s.unit),1)}</tr></table>`).join('')).join('')+'</body></html>';
+    save(new Blob(['﻿'+html],{type:'application/vnd.ms-excel'}),`الأوزان-${today()}.xls`)}
+  m.className='msg ok';m.textContent='تم تنزيل الملف.'});
 
 /* ---------- settings ---------- */
 function renderSettings(){if(!admin)return;
@@ -488,7 +557,7 @@ $('#sf').addEventListener('input',e=>{const fs=e.target.closest('fieldset');if(!
 $('#sf').addEventListener('submit',async e=>{e.preventDefault();const out=readSettings();
   const m=$('#smsg');m.className='msg';m.textContent='جارٍ الحفظ…';try{await setDoc(doc(db,'settings','farms'),out);m.className='msg ok';m.textContent='تم الحفظ.'}catch(x){m.className='msg bad';m.textContent='تعذّر الحفظ.'}});
 
-function all(){renderInv();renderPick();renderLast();renderDash();if(!document.activeElement?.closest('#sf'))renderSettings()}
+function all(){renderInv();if(!document.activeElement?.closest('#wF'))renderWeights();renderPick();renderLast();renderDash();if(!document.activeElement?.closest('#sf'))renderSettings()}
 </script>
 </body>
 </html>
