@@ -146,7 +146,7 @@ td.n{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initializeFirestore, persistentLocalCache, doc, setDoc, deleteDoc, collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, deleteDoc, collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 const firebaseConfig = {
   apiKey: "AIzaSyBUfqZ8IIp5x-_nGQzl9h6ennWkNfNhjrs",
   authDomain: "obaid-farms-4a41e.firebaseapp.com",
@@ -167,13 +167,15 @@ const FARM_EMAILS = {
 };
 
 const $=s=>document.querySelector(s);
+addEventListener('error',e=>{const c=document.getElementById('conn');if(c){c.className='msg bad';c.textContent='خطأ: '+(e.message||e)}});
+addEventListener('unhandledrejection',e=>{const c=document.getElementById('conn');if(c){c.className='msg bad';c.textContent='خطأ: '+(e.reason?.message||e.reason)}});
 const IDS=['f1','f2','f3'];
 const DEF={f1:{name:'المزرعة 1',birds:0,start:''},f2:{name:'المزرعة 2',birds:0,start:''},f3:{name:'المزرعة 3',birds:0,start:''}};
 let farms=structuredClone(DEF),entries=[],admin=false,myFarm=null,cur='f1',chartKey='mortality',filter='all',unsubs=[];
 
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
-let db;try{db=initializeFirestore(app,{localCache:persistentLocalCache()})}catch(e){db=initializeFirestore(app,{})}
+let db;try{db=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})})}catch(e){db=initializeFirestore(app,{})}
 
 const low=s=>String(s||'').trim().toLowerCase();
 const today=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)};
@@ -201,9 +203,10 @@ onAuthStateChanged(auth,u=>{unsubs.forEach(f=>f());unsubs=[];entries=[];
   $('#pickWrap').classList.toggle('hide',!admin);
   cur=myFarm||cur;
   $('#whoami').textContent=(admin?'المدير':nm(myFarm))+' · '+u.email;
-  start();show();});
+  all();start();show();});
 
 function start(){
+  $('#conn').className='msg';$('#conn').textContent='جارٍ تحميل البيانات…';
   unsubs.push(onSnapshot(doc(db,'settings','farms'),sn=>{if(sn.exists()){const v=sn.data();IDS.forEach(id=>farms[id]={...DEF[id],...(v[id]||{})})}all()},()=>{}));
   const q=admin?collection(db,'entries'):query(collection(db,'entries'),where('farm','==',myFarm));
   unsubs.push(onSnapshot(q,{includeMetadataChanges:true},sn=>{
