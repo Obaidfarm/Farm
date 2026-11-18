@@ -12,8 +12,9 @@
    PICTURE: نموذج الإدخال نفسه، ثم بطاقات المزارع والرسم اليومي
    COLOUR and TYPE: أخضر حقل عميق، قمحي مساند، أحمر للنفوق؛ IBM Plex Sans Arabic
    LAYOUT: عمود واحد للإدخال، ثلاث بطاقات للمقارنة، رسم ثم جدول */
-:root{color-scheme:light dark;--bg:light-dark(#f7f5ef,#141a16);--card:light-dark(#ffffff,#1d2520);--ink:light-dark(#18201b,#e9eee9);--mute:light-dark(#5d6b62,#9fb0a5);--line:light-dark(#e2e0d6,#2c362f);--green:light-dark(#1f5a3a,#7cc59a);--head:light-dark(#1f4d36,#0f2a1d);--wheat:light-dark(#e8c66a,#d9b452);--red:light-dark(#b3261e,#ff8a80);--f1:light-dark(#2f7d4f,#6fcf97);--f2:light-dark(#b9770e,#f2c46d);--f3:light-dark(#2f6fae,#7fb2e5)}
-:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+:root{color-scheme:light;--bg:#f7f5ef;--card:#ffffff;--ink:#18201b;--mute:#5d6b62;--line:#e2e0d6;--green:#1f5a3a;--head:#1f4d36;--wheat:#e8c66a;--red:#b3261e;--f1:#2f7d4f;--f2:#b9770e;--f3:#2f6fae}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#141a16;--card:#1d2520;--ink:#e9eee9;--mute:#9fb0a5;--line:#2c362f;--green:#7cc59a;--head:#0f2a1d;--wheat:#d9b452;--red:#ff8a80;--f1:#6fcf97;--f2:#f2c46d;--f3:#7fb2e5}}
+
 *{box-sizing:border-box;min-width:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "IBM Plex Sans Arabic",Tahoma,sans-serif;overflow-x:clip}
 header{background:var(--head);color:#fff;padding:20px max(5vw,16px) 0}
@@ -32,9 +33,9 @@ input,textarea,select{font:inherit;font-size:16px;color:var(--ink);background:va
 input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid var(--wheat);outline-offset:1px}
 .farms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .farms button{min-height:56px;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;font:inherit;font-weight:700;cursor:pointer}
-.farms button.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--card))}
+.farms button.on{border-color:var(--c);background:var(--card);box-shadow:inset 0 0 0 100px rgba(47,125,79,.08)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.btn{min-height:50px;border:0;border-radius:12px;background:var(--green);color:light-dark(#fff,#0f2a1d);font:inherit;font-weight:700;font-size:17px;cursor:pointer;padding:0 20px}
+.btn{min-height:50px;border:0;border-radius:12px;background:var(--green);color:#fff;font:inherit;font-weight:700;font-size:17px;cursor:pointer;padding:0 20px}
 .btn:disabled{opacity:.5;cursor:default}
 .ghost{background:none;border:1px solid var(--line);color:var(--ink);border-radius:10px;min-height:40px;padding:0 12px;font:inherit;cursor:pointer}
 .msg{font-size:14px;min-height:22px}.ok{color:var(--green)}.bad{color:var(--red)}
@@ -45,8 +46,8 @@ input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid v
 .kv{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:14px}
 .kv b{font-variant-numeric:tabular-nums;white-space:nowrap}
 .red{color:var(--red)}
-.warn{margin-top:8px;font-size:13px;padding:6px 10px;border-radius:8px;background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red)}
-.done{margin-top:8px;font-size:13px;padding:6px 10px;border-radius:8px;background:color-mix(in srgb,var(--f1) 14%,transparent);color:var(--green)}
+.warn{margin-top:8px;font-size:13px;padding:6px 10px;border-radius:8px;background:rgba(179,38,30,.1);color:var(--red)}
+.done{margin-top:8px;font-size:13px;padding:6px 10px;border-radius:8px;background:rgba(47,125,79,.12);color:var(--green)}
 .tot{display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:12px}
 .tot div{font-size:14px;color:var(--mute)}.tot b{display:block;font-size:22px;color:var(--ink);font-variant-numeric:tabular-nums}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
@@ -176,12 +177,12 @@ let db;try{db=initializeFirestore(app,{localCache:persistentLocalCache()})}catch
 
 const low=s=>String(s||'').trim().toLowerCase();
 const today=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)};
-const fmt=(n,d=0)=>Number(n||0).toLocaleString('ar-SA',{maximumFractionDigits:d});
+const fmt=(n,d=0)=>Number(n||0).toLocaleString('ar-SA-u-nu-latn',{maximumFractionDigits:d});
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const col=id=>`var(--${id})`;
 const nm=id=>farms[id]?.name||DEF[id]?.name||id;
 const addDays=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
-const dshort=s=>new Date(s+'T12:00:00').toLocaleDateString('ar-SA-u-ca-gregory',{day:'numeric',month:'short'});
+const dshort=s=>new Date(s+'T12:00:00').toLocaleDateString('ar-SA-u-ca-gregory-nu-latn',{day:'numeric',month:'short'});
 const farmOfEmail=e=>{for(const id of IDS)if(low(FARM_EMAILS[id])===low(e))return id;return null};
 
 /* ---------- auth ---------- */
