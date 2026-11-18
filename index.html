@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>متابعة المزارع الثلاث</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: عملي وهادئ، دفتر مزرعة يومي
+   IDEA: سجلّ العنبر المعلّق على باب المزرعة
+   PICTURE: نموذج الإدخال نفسه، ثم بطاقات المزارع والرسم اليومي
+   COLOUR and TYPE: أخضر حقل عميق، قمحي مساند، أحمر للنفوق؛ IBM Plex Sans Arabic
+   LAYOUT: عمود واحد للإدخال، ثلاث بطاقات للمقارنة، رسم ثم جدول */
+:root{color-scheme:light dark;--bg:light-dark(#f7f5ef,#141a16);--card:light-dark(#ffffff,#1d2520);--ink:light-dark(#18201b,#e9eee9);--mute:light-dark(#5d6b62,#9fb0a5);--line:light-dark(#e2e0d6,#2c362f);--green:light-dark(#1f5a3a,#7cc59a);--head:light-dark(#1f4d36,#0f2a1d);--wheat:light-dark(#e8c66a,#d9b452);--red:light-dark(#b3261e,#ff8a80);--f1:light-dark(#2f7d4f,#6fcf97);--f2:light-dark(#b9770e,#f2c46d);--f3:light-dark(#2f6fae,#7fb2e5)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "IBM Plex Sans Arabic",Tahoma,sans-serif;overflow-x:clip}
+header{background:var(--head);color:#fff;padding:20px max(5vw,16px) 0}
+header h1{margin:0;font-size:clamp(24px,4vw,34px);line-height:1.1;font-weight:700}
+header p{margin:4px 0 14px;opacity:.8;font-size:14px}
+nav{display:flex;gap:4px;overflow-x:auto}
+nav a{flex:none;color:#fff;text-decoration:none;padding:12px 16px;border-radius:10px 10px 0 0;opacity:.8;font-weight:500}
+nav a.on{background:var(--bg);color:var(--ink);opacity:1}
+main{max-width:1100px;margin:0 auto;padding:24px max(4vw,14px) 48px}
+.view{display:none}.view.on{display:block}
+h2{font-size:20px;margin:28px 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.form{max-width:560px;display:grid;gap:14px}
+label{display:grid;gap:6px;font-size:14px;color:var(--mute);font-weight:500}
+input,textarea,select{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 12px;min-height:46px;width:100%}
+input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid var(--wheat);outline-offset:1px}
+.farms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.farms button{min-height:56px;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;font:inherit;font-weight:700;cursor:pointer}
+.farms button.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--card))}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{min-height:50px;border:0;border-radius:12px;background:var(--green);color:light-dark(#fff,#0f2a1d);font:inherit;font-weight:700;font-size:17px;cursor:pointer;padding:0 20px}
+.btn:disabled{opacity:.5;cursor:default}
+.ghost{background:none;border:1px solid var(--line);color:var(--ink);border-radius:10px;min-height:40px;padding:0 12px;font:inherit;cursor:pointer}
+.msg{font-size:14px;min-height:22px}.ok{color:var(--green)}.bad{color:var(--red)}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.fc{border-top:5px solid var(--c)}
+.fc h3{margin:0 0 4px;font-size:18px}.fc .age{font-size:13px;color:var(--mute)}
+.big{font-size:clamp(26px,4vw,34px);font-weight:700;line-height:1.1;margin:10px 0 2px;font-variant-numeric:tabular-nums}
+.kv{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:14px}
+.kv b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.red{color:var(--red)}
+.warn{margin-top:8px;font-size:13px;padding:6px 10px;border-radius:8px;background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red)}
+.done{margin-top:8px;font-size:13px;padding:6px 10px;border-radius:8px;background:color-mix(in srgb,var(--f1) 14%,transparent);color:var(--green)}
+.tot{display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:12px}
+.tot div{font-size:14px;color:var(--mute)}.tot b{display:block;font-size:22px;color:var(--ink);font-variant-numeric:tabular-nums}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.tabs button.on{background:var(--ink);color:var(--bg)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--c);margin-inline-end:6px;vertical-align:-1px}
+.fig{position:relative;min-height:300px}.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:start}
+th{color:var(--mute);font-weight:500}
+td.n{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c);margin-inline-end:6px}
+.empty{color:var(--mute);padding:20px 0;text-align:center}
+.note{font-size:13px;color:var(--mute)}
+.scroll{overflow-x:auto}
+@media(max-width:700px){.grid3{grid-template-columns:1fr}}
+@media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-8em;color:var(--mute)}.stack td:empty{display:none}}
+.login{max-width:420px;margin:40px auto}
+.who{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;margin-bottom:6px;font-size:14px;color:var(--mute)}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <h1>متابعة المزارع الثلاث</h1>
+  <p>النفوق واستهلاك العلف في مكان واحد</p>
+  <nav id="nav" class="hide">
+    <a href="#entry" data-v="entry">تسجيل اليوم</a>
+    <a href="#dash" data-v="dash" class="adm">لوحة المتابعة</a>
+    <a href="#settings" data-v="settings" class="adm">الإعدادات</a>
+  </nav>
+</header>
+<main>
+  <div id="conn" class="msg"></div>
+
+  <section id="login" class="hide">
+    <form class="card form login" id="lf">
+      <h2 style="margin:0">تسجيل الدخول</h2>
+      <label>البريد الإلكتروني<input type="email" id="le" autocomplete="username" required dir="ltr"></label>
+      <label>كلمة المرور<input type="password" id="lp" autocomplete="current-password" required dir="ltr"></label>
+      <button class="btn" type="submit">دخول</button>
+      <div class="msg" id="lmsg"></div>
+    </form>
+  </section>
+
+  <div id="app" class="hide">
+    <div class="who"><span id="whoami"></span><button class="ghost" id="out">تسجيل الخروج</button></div>
+
+    <section class="view" id="v-entry">
+      <form class="form card" id="f">
+        <div id="pickWrap">
+          <div class="note" style="margin-bottom:6px">المزرعة</div>
+          <div class="farms" id="pick"></div>
+        </div>
+        <label>التاريخ<input type="date" id="d" required></label>
+        <div class="two">
+          <label>النفوق (طائر)<input type="number" id="m" min="0" step="1" inputmode="numeric" required></label>
+          <label>العلف المستهلك (كجم)<input type="number" id="fd" min="0" step="0.1" inputmode="decimal" required></label>
+        </div>
+        <label>ملاحظات (اختياري)<textarea id="nt" rows="2" maxlength="300"></textarea></label>
+        <div id="exists" class="note"></div>
+        <button class="btn" id="save" type="submit">حفظ</button>
+        <div class="msg" id="fmsg"></div>
+      </form>
+      <h2 id="lastT">آخر 7 أيام</h2>
+      <div class="card scroll"><table class="stack"><thead><tr><th>التاريخ</th><th>النفوق</th><th>العلف (كجم)</th><th>ملاحظات</th></tr></thead><tbody id="last"></tbody></table></div>
+    </section>
+
+    <section class="view" id="v-dash">
+      <div class="grid3" id="cards"></div>
+      <div class="card" style="margin-top:12px">
+        <div class="note">إجمالي المزارع الثلاث</div>
+        <div class="tot" id="tot"></div>
+      </div>
+      <h2>آخر 14 يوماً</h2>
+      <div class="card">
+        <div class="tabs" id="ckey"><button class="ghost on" data-k="mortality">النفوق اليومي</button><button class="ghost" data-k="feed">العلف اليومي (كجم)</button></div>
+        <div class="fig"><svg id="ch"></svg></div>
+        <div class="legend" id="lg"></div>
+      </div>
+      <h2>كل السجلات</h2>
+      <div class="card">
+        <div class="tabs" id="flt"></div>
+        <div class="scroll"><table class="stack"><thead><tr><th>التاريخ</th><th>المزرعة</th><th>النفوق</th><th>العلف (كجم)</th><th>ملاحظات</th><th>سجّله</th><th></th></tr></thead><tbody id="all"></tbody></table></div>
+        <div style="margin-top:12px"><button class="ghost" id="csv">نسخ السجلات (CSV) للصقها في Excel</button> <span class="msg" id="cmsg"></span></div>
+      </div>
+    </section>
+
+    <section class="view" id="v-settings">
+      <form class="card form" id="sf" style="max-width:720px"></form>
+      <p class="note">عدد الطيور المستلمة وتاريخ الاستلام يُستخدمان لحساب نسبة النفوق والطيور الحية وعمر القطيع. عند بدء دورة جديدة غيّر التاريخ، وسيحسب الملخص من ذلك التاريخ فقط (السجلات القديمة تبقى محفوظة).</p>
+    </section>
+  </div>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { initializeFirestore, persistentLocalCache, doc, setDoc, deleteDoc, collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyBUfqZ8IIp5x-_nGQzl9h6ennWkNfNhjrs",
+  authDomain: "obaid-farms-4a41e.firebaseapp.com",
+  projectId: "obaid-farms-4a41e",
+  storageBucket: "obaid-farms-4a41e.firebasestorage.app",
+  messagingSenderId: "666019802497",
+  appId: "1:666019802497:web:a5e4edff4f13dd0945cc80"
+};
+
+
+const ADMIN_EMAILS = ["somaa0012@gmail.com"];
+
+
+const FARM_EMAILS = {
+  f1: "khogalialkahli@gmail.com",
+  f2: "soheapsalih83@gmail.com",
+  f3: "whbyhsbalrswl@gmail.com"
+};
+
+const $=s=>document.querySelector(s);
+const IDS=['f1','f2','f3'];
+const DEF={f1:{name:'المزرعة 1',birds:0,start:''},f2:{name:'المزرعة 2',birds:0,start:''},f3:{name:'المزرعة 3',birds:0,start:''}};
+let farms=structuredClone(DEF),entries=[],admin=false,myFarm=null,cur='f1',chartKey='mortality',filter='all',unsubs=[];
+
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+let db;try{db=initializeFirestore(app,{localCache:persistentLocalCache()})}catch(e){db=initializeFirestore(app,{})}
+
+const low=s=>String(s||'').trim().toLowerCase();
+const today=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)};
+const fmt=(n,d=0)=>Number(n||0).toLocaleString('ar-SA',{maximumFractionDigits:d});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const col=id=>`var(--${id})`;
+const nm=id=>farms[id]?.name||DEF[id]?.name||id;
+const addDays=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
+const dshort=s=>new Date(s+'T12:00:00').toLocaleDateString('ar-SA-u-ca-gregory',{day:'numeric',month:'short'});
+const farmOfEmail=e=>{for(const id of IDS)if(low(FARM_EMAILS[id])===low(e))return id;return null};
+
+/* ---------- auth ---------- */
+$('#lf').addEventListener('submit',async e=>{e.preventDefault();const m=$('#lmsg');m.className='msg';m.textContent='جارٍ الدخول…';
+  try{await signInWithEmailAndPassword(auth,$('#le').value.trim(),$('#lp').value);m.textContent=''}
+  catch(x){m.className='msg bad';m.textContent='البريد أو كلمة المرور غير صحيحة.'}});
+$('#out').addEventListener('click',()=>signOut(auth));
+
+onAuthStateChanged(auth,u=>{unsubs.forEach(f=>f());unsubs=[];entries=[];
+  if(!u){$('#login').classList.remove('hide');$('#app').classList.add('hide');$('#nav').classList.add('hide');return}
+  admin=ADMIN_EMAILS.map(low).includes(low(u.email));myFarm=farmOfEmail(u.email);
+  if(!admin&&!myFarm){$('#conn').className='msg bad';$('#conn').textContent='هذا الحساب غير مربوط بأي مزرعة. راجع ملف config.js.';signOut(auth);return}
+  $('#conn').textContent='';
+  $('#login').classList.add('hide');$('#app').classList.remove('hide');$('#nav').classList.remove('hide');
+  document.querySelectorAll('.adm').forEach(a=>a.classList.toggle('hide',!admin));
+  $('#pickWrap').classList.toggle('hide',!admin);
+  cur=myFarm||cur;
+  $('#whoami').textContent=(admin?'المدير':nm(myFarm))+' · '+u.email;
+  start();show();});
+
+function start(){
+  unsubs.push(onSnapshot(doc(db,'settings','farms'),sn=>{if(sn.exists()){const v=sn.data();IDS.forEach(id=>farms[id]={...DEF[id],...(v[id]||{})})}all()},()=>{}));
+  const q=admin?collection(db,'entries'):query(collection(db,'entries'),where('farm','==',myFarm));
+  unsubs.push(onSnapshot(q,{includeMetadataChanges:true},sn=>{
+    entries=sn.docs.map(x=>({id:x.id,pending:x.metadata.hasPendingWrites,...x.data()}));
+    $('#conn').className='msg';$('#conn').textContent=sn.metadata.fromCache?'أنت غير متصل بالإنترنت الآن، البيانات المعروضة قد لا تكون محدّثة. ما تسجّله يُرسل تلقائياً عند عودة الاتصال.':'';
+    all();if(!document.activeElement?.closest('#f'))fillExisting()},
+    e=>{$('#conn').className='msg bad';$('#conn').textContent='تعذّر قراءة البيانات: '+(e.code==='permission-denied'?'لا توجد صلاحية (راجع قواعد Firestore).':e.message)}));
+}
+
+/* ---------- views ---------- */
+function show(){let v=location.hash.slice(1);if(!['entry','dash','settings'].includes(v)||(!admin&&v!=='entry'))v=admin?'dash':'entry';
+  document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
+  document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.dataset.v===v));if(v==='dash')drawChart()}
+addEventListener('hashchange',show);
+
+/* ---------- entry ---------- */
+$('#d').value=today();$('#d').max=today();
+function renderPick(){$('#pick').innerHTML=IDS.map(id=>`<button type="button" data-id="${id}" style="--c:${col(id)}" class="${id===cur?'on':''}">${esc(nm(id))}</button>`).join('');
+  $('#lastT').textContent='آخر 7 أيام — '+nm(cur)}
+$('#pick').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cur=b.dataset.id;renderPick();fillExisting();renderLast()});
+$('#d').addEventListener('change',fillExisting);
+function fillExisting(){const e=entries.find(x=>x.farm===cur&&x.date===$('#d').value);
+  $('#exists').textContent=e?'يوجد سجل لهذا اليوم وسيتم تعديله عند الحفظ.':'';
+  $('#m').value=e?e.mortality:'';$('#fd').value=e?e.feed:'';$('#nt').value=e?.notes||''}
+$('#f').addEventListener('submit',async ev=>{ev.preventDefault();const msg=$('#fmsg');
+  const date=$('#d').value,m=Math.max(0,Math.round(+$('#m').value)),f=Math.max(0,Math.round(+$('#fd').value*10)/10);
+  if(!date||$('#m').value===''||$('#fd').value===''){msg.className='msg bad';msg.textContent='أدخل التاريخ والنفوق والعلف.';return}
+  if(date>today()){msg.className='msg bad';msg.textContent='لا يمكن التسجيل لتاريخ قادم.';return}
+  $('#save').disabled=true;msg.className='msg';msg.textContent='جارٍ الحفظ…';
+  const p=setDoc(doc(db,'entries',cur+'_'+date),{farm:cur,date,mortality:m,feed:f,notes:$('#nt').value.trim().slice(0,300),by:auth.currentUser.email,at:new Date().toISOString()});
+  const t=setTimeout(()=>{msg.className='msg ok';msg.textContent='تم الحفظ على الجهاز، وسيُرسل تلقائياً عند توفّر الإنترنت.';$('#save').disabled=false},4000);
+  try{await p;clearTimeout(t);msg.className='msg ok';msg.textContent=`تم حفظ سجل ${nm(cur)} ليوم ${dshort(date)}.`}
+  catch(e){clearTimeout(t);msg.className='msg bad';msg.textContent=e.code==='permission-denied'?'لا توجد صلاحية للحفظ لهذه المزرعة.':'تعذّر الحفظ: '+e.message}
+  $('#save').disabled=false});
+function renderLast(){const from=addDays(today(),-6);const rows=entries.filter(e=>e.farm===cur&&e.date>=from).sort((a,b)=>b.date.localeCompare(a.date));
+  $('#last').innerHTML=rows.length?rows.map(e=>`<tr><td>${dshort(e.date)}${e.pending?' <span class="note">(لم يُرسل بعد)</span>':''}</td><td class="n red">${fmt(e.mortality)}</td><td class="n">${fmt(e.feed,1)}</td><td>${esc(e.notes)}</td></tr>`).join(''):'<tr><td colspan="4" class="empty">لا توجد سجلات في آخر 7 أيام</td></tr>'}
+
+/* ---------- dashboard ---------- */
+function stats(id){const f=farms[id],list=entries.filter(e=>e.farm===id&&(!f.start||e.date>=f.start));
+  const mort=list.reduce((s,e)=>s+(+e.mortality||0),0),feed=list.reduce((s,e)=>s+(+e.feed||0),0);
+  const birds=+f.birds||0,alive=Math.max(0,birds-mort),t=list.find(e=>e.date===today());
+  const from=addDays(today(),-6),w=list.filter(e=>e.date>=from).reduce((s,e)=>s+(+e.mortality||0),0);
+  const age=f.start?Math.round((new Date(today()+'T12:00:00')-new Date(f.start+'T12:00:00'))/864e5)+1:null;
+  return{mort,feed,alive,birds,pct:birds>0?mort/birds*100:null,perBird:alive>0?feed/alive:null,t,w,age}}
+function renderDash(){if(!admin)return;let T={birds:0,mort:0,alive:0,feed:0};
+  $('#cards').innerHTML=IDS.map(id=>{const s=stats(id);T.birds+=s.birds;T.mort+=s.mort;T.alive+=s.alive;T.feed+=s.feed;
+    return `<div class="card fc" style="--c:${col(id)}"><h3>${esc(nm(id))}</h3><div class="age">${s.age?'عمر القطيع: '+fmt(s.age)+' يوم':'حدّد تاريخ الاستلام من الإعدادات'}</div>
+    <div class="big">${fmt(s.alive)}</div><div class="note">طائر حي من ${fmt(s.birds)}</div>
+    <div class="kv" style="margin-top:10px"><span>إجمالي النفوق</span><b class="red">${fmt(s.mort)}${s.pct!=null?' ('+fmt(s.pct,2)+'%)':''}</b></div>
+    <div class="kv"><span>نفوق آخر 7 أيام</span><b>${fmt(s.w)}</b></div>
+    <div class="kv"><span>إجمالي العلف</span><b>${fmt(s.feed,1)} كجم</b></div>
+    <div class="kv"><span>العلف لكل طائر حي</span><b>${s.perBird!=null?fmt(s.perBird,3)+' كجم':'—'}</b></div>
+    ${s.t?`<div class="done">اليوم: نفوق ${fmt(s.t.mortality)} · علف ${fmt(s.t.feed,1)} كجم</div>`:'<div class="warn">لم يُسجَّل اليوم بعد</div>'}</div>`}).join('');
+  $('#tot').innerHTML=`<div>الطيور الحية<b>${fmt(T.alive)}</b></div><div>إجمالي النفوق<b class="red">${fmt(T.mort)}${T.birds?' ('+fmt(T.mort/T.birds*100,2)+'%)':''}</b></div><div>إجمالي العلف<b>${fmt(T.feed,1)} كجم</b></div>`;
+  $('#lg').innerHTML=IDS.map(id=>`<span style="--c:${col(id)}"><i></i>${esc(nm(id))}</span>`).join('');
+  $('#flt').innerHTML=[['all','الكل'],...IDS.map(id=>[id,nm(id)])].map(([k,l])=>`<button class="ghost ${filter===k?'on':''}" data-f="${k}">${esc(l)}</button>`).join('');
+  const rows=filtered().slice(0,300);
+  $('#all').innerHTML=rows.length?rows.map(e=>`<tr><td>${dshort(e.date)}</td><td><span class="dot" style="--c:${col(e.farm)}"></span>${esc(nm(e.farm))}</td><td class="n red">${fmt(e.mortality)}</td><td class="n">${fmt(e.feed,1)}</td><td>${esc(e.notes)}</td><td dir="ltr" style="text-align:start">${esc(e.by)}</td><td><button class="ghost" data-del="${esc(e.id)}">حذف</button></td></tr>`).join(''):'<tr><td colspan="7" class="empty">لا توجد سجلات بعد.</td></tr>';
+  drawChart()}
+const filtered=()=>entries.filter(e=>filter==='all'||e.farm===filter).sort((a,b)=>b.date.localeCompare(a.date)||a.farm.localeCompare(b.farm));
+$('#flt').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(b){filter=b.dataset.f;renderDash()}});
+$('#all').addEventListener('click',async e=>{const b=e.target.closest('[data-del]');if(!b)return;
+  if(b.dataset.c!=='1'){b.dataset.c='1';b.textContent='تأكيد الحذف';b.classList.add('red');return}
+  b.disabled=true;try{await deleteDoc(doc(db,'entries',b.dataset.del))}catch(x){b.disabled=false;b.textContent='تعذّر'}});
+$('#ckey').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b)return;chartKey=b.dataset.k;
+  b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));drawChart()});
+$('#csv').addEventListener('click',async()=>{const rows=[['التاريخ','المزرعة','النفوق','العلف كجم','ملاحظات','سجله']].concat(filtered().map(e=>[e.date,nm(e.farm),e.mortality,e.feed,e.notes||'',e.by||'']));
+  const txt=rows.map(r=>r.map(v=>/[",\n]/.test(String(v))?'"'+String(v).replace(/"/g,'""')+'"':v).join(',')).join('\n');
+  try{await navigator.clipboard.writeText(txt);$('#cmsg').textContent='تم النسخ.'}catch(x){$('#cmsg').textContent='تعذّر النسخ.'}});
+
+/* ---------- chart ---------- */
+const s=$('#ch');
+function drawChart(){const W=s.clientWidth,H=s.clientHeight;if(!W)return;const days=[...Array(14)].map((_,i)=>addDays(today(),i-13));
+  const val=(id,d)=>{const e=entries.find(x=>x.farm===id&&x.date===d);return e?+e[chartKey]||0:null};
+  let max=0;IDS.forEach(id=>days.forEach(d=>{const v=val(id,d);if(v>max)max=v}));max=max||1;
+  const p=10**Math.floor(Math.log10(max)),r=max/p,nice=(r<=1?1:r<=2?2:r<=5?5:10)*p;
+  const L=W<520?34:50,R=12,Tp=12,B=28,pw=W-L-R,ph=H-Tp-B;
+  const x=i=>W-R-(i/(days.length-1))*pw,y=v=>Tp+ph-(v/nice)*ph;
+  let g='';for(let k=0;k<=4;k++){const v=nice*k/4,yy=y(v);g+=`<line x1="${L-4}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${L-8}" y="${yy+4}" font-size="12" fill="var(--mute)" text-anchor="end">${fmt(v,v<10?1:0)}</text>`}
+  const step=W<520?4:2;days.forEach((d,i)=>{if((13-i)%step===0)g+=`<text x="${x(i)}" y="${H-8}" font-size="12" fill="var(--mute)" text-anchor="middle">${dshort(d)}</text>`});
+  IDS.forEach(id=>{let path='',pen=false,pts='';days.forEach((d,i)=>{const v=val(id,d);if(v==null){pen=false;return}
+      path+=(pen?'L':'M')+x(i).toFixed(1)+','+y(v).toFixed(1)+' ';pen=true;
+      pts+=`<circle cx="${x(i)}" cy="${y(v)}" r="3.5" fill="var(--${id})"><title>${esc(nm(id))} ${dshort(d)}: ${fmt(v,1)}</title></circle>`});
+    if(path)g+=`<path d="${path.trim()}" fill="none" stroke="var(--${id})" stroke-width="2.5" stroke-linejoin="round"/>`;g+=pts});
+  s.innerHTML=g}
+new ResizeObserver(drawChart).observe(s);
+
+/* ---------- settings ---------- */
+function renderSettings(){if(!admin)return;$('#sf').innerHTML=IDS.map(id=>`<fieldset style="border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;border-inline-start:5px solid var(--${id})"><legend style="padding:0 6px;font-weight:700">${esc(nm(id))}</legend>
+  <label>اسم المزرعة<input id="n-${id}" value="${esc(farms[id].name)}" maxlength="40"></label>
+  <div class="two"><label>عدد الطيور المستلمة<input type="number" min="0" id="b-${id}" value="${+farms[id].birds||''}"></label><label>تاريخ الاستلام<input type="date" id="s-${id}" value="${esc(farms[id].start)}"></label></div></fieldset>`).join('')+
+  `<button class="btn" type="submit">حفظ الإعدادات</button><div class="msg" id="smsg"></div>`}
+$('#sf').addEventListener('submit',async e=>{e.preventDefault();const out={};IDS.forEach(id=>out[id]={name:$('#n-'+id).value.trim()||DEF[id].name,birds:Math.max(0,Math.round(+$('#b-'+id).value||0)),start:$('#s-'+id).value||''});
+  const m=$('#smsg');m.className='msg';m.textContent='جارٍ الحفظ…';try{await setDoc(doc(db,'settings','farms'),out);m.className='msg ok';m.textContent='تم الحفظ.'}catch(x){m.className='msg bad';m.textContent='تعذّر الحفظ.'}});
+
+function all(){renderPick();renderLast();renderDash();if(!document.activeElement?.closest('#sf'))renderSettings()}
+</script>
+</body>
+</html>
