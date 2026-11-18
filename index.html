@@ -67,6 +67,7 @@ td.n{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
 @media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-8em;color:var(--mute)}.stack td:empty{display:none}}
 .login{max-width:420px;margin:40px auto}
 .who{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;margin-bottom:6px;font-size:14px;color:var(--mute)}
+.sheds{border-collapse:collapse;width:100%;font-size:13px}.sheds th,.sheds td{border:1px solid var(--line);padding:3px 2px;text-align:center;white-space:nowrap}.sheds th{background:var(--bg);color:var(--mute);font-weight:500}.sheds input{width:100%;min-width:36px;max-width:80px;min-height:40px;padding:4px 1px;font-size:15px;text-align:center}.sheds tfoot td{font-weight:700;background:var(--bg)}.c{text-align:center}
 .hide{display:none!important}
 </style>
 </head>
@@ -97,19 +98,25 @@ td.n{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
     <div class="who"><span id="whoami"></span><button class="ghost" id="out">تسجيل الخروج</button></div>
 
     <section class="view" id="v-entry">
-      <form class="form card" id="f">
+      <form class="card" id="f" style="display:grid;gap:14px">
         <div id="pickWrap">
           <div class="note" style="margin-bottom:6px">المزرعة</div>
           <div class="farms" id="pick"></div>
         </div>
-        <label>التاريخ<input type="date" id="d" required></label>
-        <div class="two">
-          <label>النفوق (طائر)<input type="number" id="m" min="0" step="1" inputmode="numeric" required></label>
-          <label>العلف المستهلك (كجم)<input type="number" id="fd" min="0" step="0.1" inputmode="decimal" required></label>
+        <label style="max-width:260px">التاريخ<input type="date" id="d" required></label>
+        <div>
+          <div class="note" style="margin-bottom:6px">نفوق العنابر (اترك الخانة فاضية إذا ما فيه نفوق = صفر)</div>
+          <div class="scroll"><table class="sheds" id="shedT"></table></div>
         </div>
-        <label>ملاحظات (اختياري)<textarea id="nt" rows="2" maxlength="300"></textarea></label>
+        <div class="two" style="max-width:560px">
+          <label>العلف المستهلك اليوم (كجم)<input type="number" id="fd" min="0" step="0.1" inputmode="decimal"></label>
+          <label>ملاحظات<input id="nt" maxlength="300"></label>
+        </div>
         <div id="exists" class="note"></div>
-        <button class="btn" id="save" type="submit">حفظ</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn" id="save" type="submit">حفظ</button>
+          <button class="ghost" id="xlsOne" type="button">تنزيل تقرير هذا اليوم Excel</button>
+        </div>
         <div class="msg" id="fmsg"></div>
       </form>
       <h2 id="lastT">آخر 7 أيام</h2>
@@ -117,6 +124,11 @@ td.n{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
     </section>
 
     <section class="view" id="v-dash">
+      <div class="card" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:12px">
+        <label style="min-width:200px">تقرير يوم<input type="date" id="xd"></label>
+        <button class="btn" id="xlsAll" type="button">تنزيل Excel للمزارع الثلاث</button>
+        <span class="msg" id="xmsg"></span>
+      </div>
       <div class="grid3" id="cards"></div>
       <div class="card" style="margin-top:12px">
         <div class="note">إجمالي المزارع الثلاث</div>
@@ -132,17 +144,17 @@ td.n{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
       <div class="card">
         <div class="tabs" id="flt"></div>
         <div class="scroll"><table class="stack"><thead><tr><th>التاريخ</th><th>المزرعة</th><th>النفوق</th><th>العلف (كجم)</th><th>ملاحظات</th><th>سجّله</th><th></th></tr></thead><tbody id="all"></tbody></table></div>
-        <div style="margin-top:12px"><button class="ghost" id="csv">نسخ السجلات (CSV) للصقها في Excel</button> <span class="msg" id="cmsg"></span></div>
       </div>
     </section>
 
     <section class="view" id="v-settings">
-      <form class="card form" id="sf" style="max-width:720px"></form>
-      <p class="note">عدد الطيور المستلمة وتاريخ الاستلام يُستخدمان لحساب نسبة النفوق والطيور الحية وعمر القطيع. عند بدء دورة جديدة غيّر التاريخ، وسيحسب الملخص من ذلك التاريخ فقط (السجلات القديمة تبقى محفوظة).</p>
+      <form class="card form" id="sf" style="max-width:760px"></form>
+      <p class="note">تواريخ استلام العنابر معبّأة من أوراقكم (من العمر يوم 18/11)، وعليها يتحسب العمر (old). في خانة «الرصيد قبل بداية التسجيل» اكتب رصيد كل عنبر (balance) من آخر ورقة مكتوبة باليد، واختر «بداية التسجيل في البرنامج» اليوم اللي بعدها. من بعدها يتحسب الرصيد لحاله: الرصيد − النفوق اليومي. عند بدء دورة جديدة غيّر التواريخ والأرصدة.</p>
     </section>
   </div>
 </main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js" defer></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -167,10 +179,11 @@ const FARM_EMAILS = {
 };
 
 const $=s=>document.querySelector(s);
-addEventListener('error',e=>{const c=document.getElementById('conn');if(c){c.className='msg bad';c.textContent='خطأ: '+(e.message||e)}});
-addEventListener('unhandledrejection',e=>{const c=document.getElementById('conn');if(c){c.className='msg bad';c.textContent='خطأ: '+(e.reason?.message||e.reason)}});
+const showErr=t=>{const c=document.getElementById('conn');if(c){c.className='msg bad';c.textContent='خطأ: '+t}};
+addEventListener('error',e=>showErr(e.message||e));
+addEventListener('unhandledrejection',e=>showErr(e.reason?.message||e.reason));
 const IDS=['f1','f2','f3'];
-const DEF={f1:{name:'المزرعة 1',birds:0,start:''},f2:{name:'المزرعة 2',birds:0,start:''},f3:{name:'المزرعة 3',birds:0,start:''}};
+const DEF={f1:{name:'Khulies 5',birds:0,start:'2026-11-03',openDate:'2026-11-19',shedCount:15,sheds:[{birds:0,start:'2026-11-03'},{birds:0,start:'2026-11-03'},{birds:0,start:'2026-11-03'},{birds:0,start:'2026-11-03'},{birds:0,start:'2026-11-03'},{birds:0,start:'2026-11-03'},{birds:0,start:'2026-11-03'},{birds:0,start:'2026-11-04'},{birds:0,start:'2026-11-04'},{birds:0,start:'2026-11-04'},{birds:0,start:'2026-11-04'},{birds:0,start:'2026-11-04'},{birds:0,start:'2026-11-04'},{birds:0,start:'2026-11-04'},{birds:0,start:'2026-11-04'}]},f2:{name:'Rabig 3',birds:0,start:'2026-11-06',openDate:'2026-11-19',shedCount:12,sheds:[{birds:0,start:'2026-11-06'},{birds:0,start:'2026-11-06'},{birds:0,start:'2026-11-06'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-07'},{birds:0,start:'2026-11-07'},{birds:0,start:'2026-11-07'}]},f3:{name:'Guided 4',birds:0,start:'2026-11-09',openDate:'2026-11-19',shedCount:10,sheds:[{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'}]}};
 let farms=structuredClone(DEF),entries=[],admin=false,myFarm=null,cur='f1',chartKey='mortality',filter='all',unsubs=[];
 
 const app=initializeApp(firebaseConfig);
@@ -184,8 +197,25 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const col=id=>`var(--${id})`;
 const nm=id=>farms[id]?.name||DEF[id]?.name||id;
 const addDays=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
+const dayDiff=(a,b)=>Math.round((new Date(a+'T12:00:00')-new Date(b+'T12:00:00'))/864e5);
 const dshort=s=>new Date(s+'T12:00:00').toLocaleDateString('ar-SA-u-ca-gregory-nu-latn',{day:'numeric',month:'short'});
 const farmOfEmail=e=>{for(const id of IDS)if(low(FARM_EMAILS[id])===low(e))return id;return null};
+const num=v=>{const n=+v;return isFinite(n)&&v!==''&&v!=null?n:0};
+
+/* ---------- farm / shed model ---------- */
+function shedList(id){const f=farms[id],n=Math.max(1,Math.min(50,Math.round(+f.shedCount||10)));
+  return [...Array(n)].map((_,k)=>({birds:+(f.sheds?.[k]?.birds)||0,start:f.sheds?.[k]?.start||f.start||''}))}
+function received(id){return +farms[id].birds||shedList(id).reduce((a,x)=>a+x.birds,0)}
+const hasOpen=id=>shedList(id).some(x=>x.birds>0);
+const openDate=id=>farms[id].openDate||'';
+function farmStart(id){const st=shedList(id).map(x=>x.start).filter(Boolean).sort();return st[0]||farms[id].start||''}
+const entryOf=(id,date)=>entries.find(e=>e.farm===id&&e.date===date);
+const shedTotal=x=>num(x?.n)+num(x?.m)+num(x?.i);
+function shedRows(id,date){const sl=shedList(id),e=entryOf(id,date);
+  return sl.map((s,k)=>{const x=e?.sheds?.[k];
+    let cum=0;const od=openDate(id)||s.start;for(const en of entries)if(en.farm===id&&en.date<=date&&(!od||en.date>=od))cum+=shedTotal(en.sheds?.[k]);
+    return{no:k+1,old:s.start&&date>=s.start?dayDiff(date,s.start):null,n:x?.n??null,m:x?.m??null,i:x?.i??null,
+      total:x?shedTotal(x):null,balance:s.birds&&(!openDate(id)||date>=openDate(id))?s.birds-cum:null}})}
 
 /* ---------- auth ---------- */
 $('#lf').addEventListener('submit',async e=>{e.preventDefault();const m=$('#lmsg');m.className='msg';m.textContent='جارٍ الدخول…';
@@ -196,24 +226,26 @@ $('#out').addEventListener('click',()=>signOut(auth));
 onAuthStateChanged(auth,u=>{unsubs.forEach(f=>f());unsubs=[];entries=[];
   if(!u){$('#login').classList.remove('hide');$('#app').classList.add('hide');$('#nav').classList.add('hide');return}
   admin=ADMIN_EMAILS.map(low).includes(low(u.email));myFarm=farmOfEmail(u.email);
-  if(!admin&&!myFarm){$('#conn').className='msg bad';$('#conn').textContent='هذا الحساب غير مربوط بأي مزرعة. راجع ملف config.js.';signOut(auth);return}
+  if(!admin&&!myFarm){showErr('هذا الحساب غير مربوط بأي مزرعة.');signOut(auth);return}
   $('#conn').textContent='';
   $('#login').classList.add('hide');$('#app').classList.remove('hide');$('#nav').classList.remove('hide');
   document.querySelectorAll('.adm').forEach(a=>a.classList.toggle('hide',!admin));
   $('#pickWrap').classList.toggle('hide',!admin);
   cur=myFarm||cur;
   $('#whoami').textContent=(admin?'المدير':nm(myFarm))+' · '+u.email;
-  all();start();show();});
+  all();renderShedForm();start();show();});
 
 function start(){
   $('#conn').className='msg';$('#conn').textContent='جارٍ تحميل البيانات…';
-  unsubs.push(onSnapshot(doc(db,'settings','farms'),sn=>{if(sn.exists()){const v=sn.data();IDS.forEach(id=>farms[id]={...DEF[id],...(v[id]||{})})}all()},()=>{}));
+  unsubs.push(onSnapshot(doc(db,'settings','farms'),sn=>{if(sn.exists()){const v=sn.data();IDS.forEach(id=>farms[id]={...DEF[id],...(v[id]||{})})}
+    $('#whoami').textContent=(admin?'المدير':nm(myFarm))+' · '+(auth.currentUser?.email||'');
+    all();if(!document.activeElement?.closest('#f'))renderShedForm()},()=>{}));
   const q=admin?collection(db,'entries'):query(collection(db,'entries'),where('farm','==',myFarm));
   unsubs.push(onSnapshot(q,{includeMetadataChanges:true},sn=>{
     entries=sn.docs.map(x=>({id:x.id,pending:x.metadata.hasPendingWrites,...x.data()}));
     $('#conn').className='msg';$('#conn').textContent=sn.metadata.fromCache?'أنت غير متصل بالإنترنت الآن، البيانات المعروضة قد لا تكون محدّثة. ما تسجّله يُرسل تلقائياً عند عودة الاتصال.':'';
-    all();if(!document.activeElement?.closest('#f'))fillExisting()},
-    e=>{$('#conn').className='msg bad';$('#conn').textContent='تعذّر قراءة البيانات: '+(e.code==='permission-denied'?'لا توجد صلاحية (راجع قواعد Firestore).':e.message)}));
+    all();if(!document.activeElement?.closest('#f'))renderShedForm()},
+    e=>showErr(e.code==='permission-denied'?'لا توجد صلاحية لقراءة البيانات (راجع قواعد Firestore).':e.message)));
 }
 
 /* ---------- views ---------- */
@@ -222,38 +254,59 @@ function show(){let v=location.hash.slice(1);if(!['entry','dash','settings'].inc
   document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.dataset.v===v));if(v==='dash')drawChart()}
 addEventListener('hashchange',show);
 
-/* ---------- entry ---------- */
-$('#d').value=today();$('#d').max=today();
+/* ---------- entry (per shed) ---------- */
+$('#d').value=today();$('#d').max=today();$('#xd').value=today();$('#xd').max=today();
 function renderPick(){$('#pick').innerHTML=IDS.map(id=>`<button type="button" data-id="${id}" style="--c:${col(id)}" class="${id===cur?'on':''}">${esc(nm(id))}</button>`).join('');
   $('#lastT').textContent='آخر 7 أيام — '+nm(cur)}
-$('#pick').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cur=b.dataset.id;renderPick();fillExisting();renderLast()});
-$('#d').addEventListener('change',fillExisting);
-function fillExisting(){const e=entries.find(x=>x.farm===cur&&x.date===$('#d').value);
-  $('#exists').textContent=e?'يوجد سجل لهذا اليوم وسيتم تعديله عند الحفظ.':'';
-  $('#m').value=e?e.mortality:'';$('#fd').value=e?e.feed:'';$('#nt').value=e?.notes||''}
+$('#pick').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cur=b.dataset.id;renderPick();renderShedForm();renderLast()});
+$('#d').addEventListener('change',renderShedForm);
+function renderShedForm(){const date=$('#d').value||today(),rows=shedRows(cur,date),e=entryOf(cur,date);
+  const v=x=>x==null?'':x;
+  $('#shedT').innerHTML=`<thead><tr><th>عنبر</th><th>العمر</th><th>ليل</th><th>صباح</th><th>عزل</th><th>مجموع</th><th>رصيد</th></tr></thead><tbody>`+
+    rows.map((r,k)=>`<tr data-k="${k}"><td class="c"><b>${r.no}</b></td><td class="c">${r.old??'—'}</td>
+      <td><input type="number" min="0" step="1" inputmode="numeric" data-f="n" value="${v(r.n)}"></td>
+      <td><input type="number" min="0" step="1" inputmode="numeric" data-f="m" value="${v(r.m)}"></td>
+      <td><input type="number" min="0" step="1" inputmode="numeric" data-f="i" value="${v(r.i)}"></td>
+      <td class="c t">${r.total??''}</td><td class="c b" data-bal="${r.balance==null?'':r.balance+(r.total||0)}">${r.balance==null?'—':fmt(r.balance)}</td></tr>`).join('')+
+    `</tbody><tfoot><tr><td class="c">Total</td><td></td><td class="c" id="sn"></td><td class="c" id="sm"></td><td class="c" id="si"></td><td class="c" id="st"></td><td class="c" id="sb"></td></tr></tfoot>`;
+  $('#fd').value=e?.feed??'';$('#nt').value=e?.notes||'';
+  $('#exists').textContent=e?'يوجد سجل لهذا اليوم، وأي تعديل يُحفظ مكانه.':'';
+  recalcForm()}
+function recalcForm(){let S={n:0,m:0,i:0,t:0,b:0},hasB=false;
+  $('#shedT').querySelectorAll('tbody tr').forEach(tr=>{const g=f=>num(tr.querySelector(`[data-f="${f}"]`).value);
+    const n=g('n'),m=g('m'),i=g('i'),t=n+m+i,any=[...tr.querySelectorAll('input')].some(x=>x.value!=='');
+    tr.querySelector('.t').textContent=any?t:'';
+    const base=tr.querySelector('.b').dataset.bal;
+    if(base!==''){const b=+base-t;tr.querySelector('.b').textContent=fmt(b);S.b+=b;hasB=true}
+    S.n+=n;S.m+=m;S.i+=i;S.t+=t});
+  $('#sn').textContent=S.n;$('#sm').textContent=S.m;$('#si').textContent=S.i;$('#st').textContent=S.t;$('#sb').textContent=hasB?fmt(S.b):'—'}
+$('#shedT').addEventListener('input',recalcForm);
 $('#f').addEventListener('submit',async ev=>{ev.preventDefault();const msg=$('#fmsg');
-  const date=$('#d').value,m=Math.max(0,Math.round(+$('#m').value)),f=Math.max(0,Math.round(+$('#fd').value*10)/10);
-  if(!date||$('#m').value===''||$('#fd').value===''){msg.className='msg bad';msg.textContent='أدخل التاريخ والنفوق والعلف.';return}
+  const date=$('#d').value;if(!date){msg.className='msg bad';msg.textContent='اختر التاريخ.';return}
   if(date>today()){msg.className='msg bad';msg.textContent='لا يمكن التسجيل لتاريخ قادم.';return}
+  const sheds=[...$('#shedT').querySelectorAll('tbody tr')].map(tr=>{const g=f=>Math.max(0,Math.round(num(tr.querySelector(`[data-f="${f}"]`).value)));return{n:g('n'),m:g('m'),i:g('i')}});
+  const mortality=sheds.reduce((a,x)=>a+x.n+x.m+x.i,0),feed=Math.max(0,Math.round(num($('#fd').value)*10)/10);
   $('#save').disabled=true;msg.className='msg';msg.textContent='جارٍ الحفظ…';
-  const p=setDoc(doc(db,'entries',cur+'_'+date),{farm:cur,date,mortality:m,feed:f,notes:$('#nt').value.trim().slice(0,300),by:auth.currentUser.email,at:new Date().toISOString()});
+  const p=setDoc(doc(db,'entries',cur+'_'+date),{farm:cur,date,sheds,mortality,feed,notes:$('#nt').value.trim().slice(0,300),by:auth.currentUser.email,at:new Date().toISOString()});
   const t=setTimeout(()=>{msg.className='msg ok';msg.textContent='تم الحفظ على الجهاز، وسيُرسل تلقائياً عند توفّر الإنترنت.';$('#save').disabled=false},4000);
-  try{await p;clearTimeout(t);msg.className='msg ok';msg.textContent=`تم حفظ سجل ${nm(cur)} ليوم ${dshort(date)}.`}
-  catch(e){clearTimeout(t);msg.className='msg bad';msg.textContent=e.code==='permission-denied'?'لا توجد صلاحية للحفظ لهذه المزرعة.':'تعذّر الحفظ: '+e.message}
+  try{await p;clearTimeout(t);msg.className='msg ok';msg.textContent=`تم حفظ سجل ${nm(cur)} ليوم ${dshort(date)}: نفوق ${mortality}.`}
+  catch(e){clearTimeout(t);msg.className='msg bad';msg.textContent=e.code==='permission-denied'?'لا توجد صلاحية للحفظ (راجع قواعد Firestore).':'تعذّر الحفظ: '+e.message}
   $('#save').disabled=false});
 function renderLast(){const from=addDays(today(),-6);const rows=entries.filter(e=>e.farm===cur&&e.date>=from).sort((a,b)=>b.date.localeCompare(a.date));
   $('#last').innerHTML=rows.length?rows.map(e=>`<tr><td>${dshort(e.date)}${e.pending?' <span class="note">(لم يُرسل بعد)</span>':''}</td><td class="n red">${fmt(e.mortality)}</td><td class="n">${fmt(e.feed,1)}</td><td>${esc(e.notes)}</td></tr>`).join(''):'<tr><td colspan="4" class="empty">لا توجد سجلات في آخر 7 أيام</td></tr>'}
 
 /* ---------- dashboard ---------- */
-function stats(id){const f=farms[id],list=entries.filter(e=>e.farm===id&&(!f.start||e.date>=f.start));
-  const mort=list.reduce((s,e)=>s+(+e.mortality||0),0),feed=list.reduce((s,e)=>s+(+e.feed||0),0);
-  const birds=+f.birds||0,alive=Math.max(0,birds-mort),t=list.find(e=>e.date===today());
+function stats(id){const st=farmStart(id),list=entries.filter(e=>e.farm===id&&(!st||e.date>=st));
+  const feed=list.reduce((s,e)=>s+(+e.feed||0),0),birds=received(id),t=list.find(e=>e.date===today());
+  let alive,mort;
+  if(hasOpen(id)&&today()>=openDate(id)){alive=shedRows(id,today()).reduce((a,r)=>a+(r.balance||0),0);mort=birds?Math.max(0,birds-alive):list.reduce((s,e)=>s+(+e.mortality||0),0)}
+  else{mort=list.reduce((s,e)=>s+(+e.mortality||0),0);alive=Math.max(0,birds-mort)}
   const from=addDays(today(),-6),w=list.filter(e=>e.date>=from).reduce((s,e)=>s+(+e.mortality||0),0);
-  const age=f.start?Math.round((new Date(today()+'T12:00:00')-new Date(f.start+'T12:00:00'))/864e5)+1:null;
+  const age=st?dayDiff(today(),st):null;
   return{mort,feed,alive,birds,pct:birds>0?mort/birds*100:null,perBird:alive>0?feed/alive:null,t,w,age}}
 function renderDash(){if(!admin)return;let T={birds:0,mort:0,alive:0,feed:0};
   $('#cards').innerHTML=IDS.map(id=>{const s=stats(id);T.birds+=s.birds;T.mort+=s.mort;T.alive+=s.alive;T.feed+=s.feed;
-    return `<div class="card fc" style="--c:${col(id)}"><h3>${esc(nm(id))}</h3><div class="age">${s.age?'عمر القطيع: '+fmt(s.age)+' يوم':'حدّد تاريخ الاستلام من الإعدادات'}</div>
+    return `<div class="card fc" style="--c:${col(id)}"><h3>${esc(nm(id))}</h3><div class="age">${s.age!=null?'عمر القطيع: '+fmt(s.age)+' يوم · '+shedList(id).length+' عنبر':'حدّد تاريخ الاستلام من الإعدادات'}</div>
     <div class="big">${fmt(s.alive)}</div><div class="note">طائر حي من ${fmt(s.birds)}</div>
     <div class="kv" style="margin-top:10px"><span>إجمالي النفوق</span><b class="red">${fmt(s.mort)}${s.pct!=null?' ('+fmt(s.pct,2)+'%)':''}</b></div>
     <div class="kv"><span>نفوق آخر 7 أيام</span><b>${fmt(s.w)}</b></div>
@@ -263,24 +316,62 @@ function renderDash(){if(!admin)return;let T={birds:0,mort:0,alive:0,feed:0};
   $('#tot').innerHTML=`<div>الطيور الحية<b>${fmt(T.alive)}</b></div><div>إجمالي النفوق<b class="red">${fmt(T.mort)}${T.birds?' ('+fmt(T.mort/T.birds*100,2)+'%)':''}</b></div><div>إجمالي العلف<b>${fmt(T.feed,1)} كجم</b></div>`;
   $('#lg').innerHTML=IDS.map(id=>`<span style="--c:${col(id)}"><i></i>${esc(nm(id))}</span>`).join('');
   $('#flt').innerHTML=[['all','الكل'],...IDS.map(id=>[id,nm(id)])].map(([k,l])=>`<button class="ghost ${filter===k?'on':''}" data-f="${k}">${esc(l)}</button>`).join('');
-  const rows=filtered().slice(0,300);
+  const rows=entries.filter(e=>filter==='all'||e.farm===filter).sort((a,b)=>b.date.localeCompare(a.date)||a.farm.localeCompare(b.farm)).slice(0,300);
   $('#all').innerHTML=rows.length?rows.map(e=>`<tr><td>${dshort(e.date)}</td><td><span class="dot" style="--c:${col(e.farm)}"></span>${esc(nm(e.farm))}</td><td class="n red">${fmt(e.mortality)}</td><td class="n">${fmt(e.feed,1)}</td><td>${esc(e.notes)}</td><td dir="ltr" style="text-align:start">${esc(e.by)}</td><td><button class="ghost" data-del="${esc(e.id)}">حذف</button></td></tr>`).join(''):'<tr><td colspan="7" class="empty">لا توجد سجلات بعد.</td></tr>';
   drawChart()}
-const filtered=()=>entries.filter(e=>filter==='all'||e.farm===filter).sort((a,b)=>b.date.localeCompare(a.date)||a.farm.localeCompare(b.farm));
 $('#flt').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(b){filter=b.dataset.f;renderDash()}});
 $('#all').addEventListener('click',async e=>{const b=e.target.closest('[data-del]');if(!b)return;
   if(b.dataset.c!=='1'){b.dataset.c='1';b.textContent='تأكيد الحذف';b.classList.add('red');return}
   b.disabled=true;try{await deleteDoc(doc(db,'entries',b.dataset.del))}catch(x){b.disabled=false;b.textContent='تعذّر'}});
 $('#ckey').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b)return;chartKey=b.dataset.k;
   b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));drawChart()});
-$('#csv').addEventListener('click',async()=>{const rows=[['التاريخ','المزرعة','النفوق','العلف كجم','ملاحظات','سجله']].concat(filtered().map(e=>[e.date,nm(e.farm),e.mortality,e.feed,e.notes||'',e.by||'']));
-  const txt=rows.map(r=>r.map(v=>/[",\n]/.test(String(v))?'"'+String(v).replace(/"/g,'""')+'"':v).join(',')).join('\n');
-  try{await navigator.clipboard.writeText(txt);$('#cmsg').textContent='تم النسخ.'}catch(x){$('#cmsg').textContent='تعذّر النسخ.'}});
+
+/* ---------- excel ---------- */
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const dTitle=s=>{const d=new Date(s+'T12:00:00');return `${DAYS[d.getDay()]} ${s.slice(8,10)}/${s.slice(5,7)}/${s.slice(0,4)}`};
+function reportData(id,date){const rows=shedRows(id,date),e=entryOf(id,date),z=v=>v==null?'':v;
+  const body=rows.map(r=>[r.no,z(r.old),e?num(r.n):'',e?num(r.m):'',e?num(r.i):'',e?num(r.total):'',z(r.balance)]);
+  const sum=k=>body.reduce((a,r)=>a+(r[k]===''?0:+r[k]),0);
+  const hasB=rows.some(r=>r.balance!=null);
+  const dd=new Date(date+'T12:00:00');return{name:nm(id),day:['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'][dd.getDay()],dateStr:`${date.slice(8,10)}/${date.slice(5,7)}/${date.slice(0,4)}`,title:`${nm(id)} - ${dTitle(date)}`,body,total:['Total',sum(1)||'',e?sum(2):'',e?sum(3):'',e?sum(4):'',e?sum(5):'',hasB?sum(6):''],feed:e?e.feed:'',notes:e?.notes||'',has:!!e}}
+const HEAD=['No.of shed','old','night','morning','isolation','total','balance'];
+async function downloadXlsx(ids,date,msgEl){
+  msgEl.className='msg';msgEl.textContent='جارٍ تجهيز الملف…';
+  const fname=`تقرير-${ids.length===1?nm(ids[0])+'-':''}${date}.xlsx`;
+  try{
+    if(!window.ExcelJS)throw new Error('noexceljs');
+    const wb=new ExcelJS.Workbook();const used=new Set();
+    for(const id of ids){const R=reportData(id,date);
+      let sn=nm(id).replace(/[\\\/\?\*\[\]:]/g,' ').slice(0,31)||id;while(used.has(sn))sn=sn.slice(0,28)+'_'+id;used.add(sn);
+      const ws=wb.addWorksheet(sn);ws.columns=[14,9,10,11,11,10,13].map(w=>({width:w}));
+      ws.mergeCells('A1:G1');const t=ws.getCell('A1');t.value=R.name;t.font={name:'Arial',size:14,bold:true,underline:true};t.alignment={horizontal:'center'};
+      ws.getCell('B2').value='Day/';ws.getCell('C2').value=R.day;ws.getCell('B3').value='Date/';ws.getCell('C3').value=R.dateStr;['B2','B3','C2','C3'].forEach(a=>ws.getCell(a).font={name:'Arial',size:12,bold:a[0]==='B'});
+      const thin={style:'thin',color:{argb:'FF000000'}},B={top:thin,left:thin,bottom:thin,right:thin};
+      const put=(r,vals,bold,fill)=>vals.forEach((v,c)=>{const x=ws.getCell(r,c+1);x.value=v===''?null:v;x.font={name:'Arial',size:11,bold:!!bold};x.border=B;x.alignment={horizontal:'center',vertical:'middle'};if(typeof v==='number')x.numFmt='#,##0';if(fill)x.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE8EAF6'}}});
+      put(5,HEAD,true,true);R.body.forEach((row,k)=>put(6+k,row));const tr=6+R.body.length;put(tr,R.total,true,true);
+      ws.getCell(tr+2,1).value='Feed consumed (kg):';ws.getCell(tr+2,1).font={name:'Arial',bold:true};ws.getCell(tr+2,3).value=R.feed===''?null:R.feed;
+      ws.mergeCells(tr+3,1,tr+3,7);ws.getCell(tr+3,1).value='Notes: '+(R.notes||'');ws.getCell(tr+3,1).alignment={horizontal:'center'};ws.getCell(tr+3,1).font={name:'Arial'};
+      if(!R.has){ws.getCell(tr+4,1).value='لم يُسجَّل هذا اليوم';ws.getCell(tr+4,1).font={name:'Arial',color:{argb:'FFB3261E'}}}
+      ws.pageSetup.fitToPage=true;ws.pageSetup.fitToWidth=1;ws.pageSetup.fitToHeight=0}
+    const buf=await wb.xlsx.writeBuffer();save(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),fname);
+  }catch(err){
+    // fallback: Excel-readable HTML tables
+    const html='<html><head><meta charset="utf-8"></head><body>'+ids.map(id=>{const R=reportData(id,date),td=(v,b)=>`<td style="border:1px solid #000;text-align:center;${b?'font-weight:bold;background:#E8EAF6':''}">${esc(v)}</td>`;
+      return `<h3 style="text-align:center;text-decoration:underline">${esc(R.name)}</h3><p>Day/ ${esc(R.day)}<br>Date/ ${esc(R.dateStr)}</p><table style="border-collapse:collapse;font-family:Arial">`+
+        `<tr>${HEAD.map(h=>td(h,1)).join('')}</tr>`+R.body.map(r=>`<tr>${r.map(v=>td(v)).join('')}</tr>`).join('')+`<tr>${R.total.map(v=>td(v,1)).join('')}</tr></table>`+
+        `<p>Feed consumed (kg): ${esc(R.feed)}</p><p>Notes: ${esc(R.notes)}</p><br>`}).join('')+'</body></html>';
+    save(new Blob(['﻿'+html],{type:'application/vnd.ms-excel'}),fname.replace('.xlsx','.xls'));
+  }
+  msgEl.className='msg ok';msgEl.textContent='تم تنزيل الملف.';
+}
+function save(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}
+$('#xlsAll').addEventListener('click',()=>downloadXlsx(IDS,$('#xd').value||today(),$('#xmsg')));
+$('#xlsOne').addEventListener('click',()=>downloadXlsx([cur],$('#d').value||today(),$('#fmsg')));
 
 /* ---------- chart ---------- */
 const s=$('#ch');
 function drawChart(){const W=s.clientWidth,H=s.clientHeight;if(!W)return;const days=[...Array(14)].map((_,i)=>addDays(today(),i-13));
-  const val=(id,d)=>{const e=entries.find(x=>x.farm===id&&x.date===d);return e?+e[chartKey]||0:null};
+  const val=(id,d)=>{const e=entryOf(id,d);return e?+e[chartKey]||0:null};
   let max=0;IDS.forEach(id=>days.forEach(d=>{const v=val(id,d);if(v>max)max=v}));max=max||1;
   const p=10**Math.floor(Math.log10(max)),r=max/p,nice=(r<=1?1:r<=2?2:r<=5?5:10)*p;
   const L=W<520?34:50,R=12,Tp=12,B=28,pw=W-L-R,ph=H-Tp-B;
@@ -295,11 +386,23 @@ function drawChart(){const W=s.clientWidth,H=s.clientHeight;if(!W)return;const d
 new ResizeObserver(drawChart).observe(s);
 
 /* ---------- settings ---------- */
-function renderSettings(){if(!admin)return;$('#sf').innerHTML=IDS.map(id=>`<fieldset style="border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;border-inline-start:5px solid var(--${id})"><legend style="padding:0 6px;font-weight:700">${esc(nm(id))}</legend>
-  <label>اسم المزرعة<input id="n-${id}" value="${esc(farms[id].name)}" maxlength="40"></label>
-  <div class="two"><label>عدد الطيور المستلمة<input type="number" min="0" id="b-${id}" value="${+farms[id].birds||''}"></label><label>تاريخ الاستلام<input type="date" id="s-${id}" value="${esc(farms[id].start)}"></label></div></fieldset>`).join('')+
+function renderSettings(){if(!admin)return;
+  $('#sf').innerHTML=IDS.map(id=>{const f=farms[id],sl=shedList(id);
+    return `<fieldset data-id="${id}" style="border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;border-inline-start:5px solid var(--${id})"><legend style="padding:0 6px;font-weight:700">${esc(nm(id))}</legend>
+    <div class="two"><label>اسم المزرعة<input class="s-name" value="${esc(f.name)}" maxlength="40"></label><label>عدد العنابر<input type="number" min="1" max="50" class="s-count" value="${sl.length}"></label></div>
+    <div class="two"><label>الطيور المستلمة (الإجمالي)<input type="number" min="0" class="s-rec" value="${+f.birds||''}"></label><label>بداية التسجيل في البرنامج<input type="date" class="s-open" value="${esc(f.openDate||'')}"></label></div>
+    <div class="scroll"><table class="sheds"><thead><tr><th>عنبر</th><th>تاريخ الاستلام</th><th>الرصيد قبل بداية التسجيل</th></tr></thead><tbody>
+    ${sl.map((s,k)=>`<tr><td class="c"><b>${k+1}</b></td><td><input type="date" class="s-d" value="${esc(s.start||'')}" style="max-width:none;width:150px"></td><td><input type="number" min="0" class="s-b" value="${s.birds||''}" style="max-width:none;width:110px"></td></tr>`).join('')}
+    </tbody></table></div><div class="note">مجموع الأرصدة: <b class="s-sum">${fmt(sl.reduce((a,x)=>a+x.birds,0))}</b></div></fieldset>`}).join('')+
   `<button class="btn" type="submit">حفظ الإعدادات</button><div class="msg" id="smsg"></div>`}
-$('#sf').addEventListener('submit',async e=>{e.preventDefault();const out={};IDS.forEach(id=>out[id]={name:$('#n-'+id).value.trim()||DEF[id].name,birds:Math.max(0,Math.round(+$('#b-'+id).value||0)),start:$('#s-'+id).value||''});
+function readSettings(){const out={};$('#sf').querySelectorAll('fieldset').forEach(fs=>{const id=fs.dataset.id;
+  const sheds=[...fs.querySelectorAll('tbody tr')].map(tr=>({birds:Math.max(0,Math.round(num(tr.querySelector('.s-b').value))),start:tr.querySelector('.s-d').value||''}));
+  const st=sheds.map(x=>x.start).filter(Boolean).sort()[0]||farms[id].start||'';
+  out[id]={name:fs.querySelector('.s-name').value.trim()||DEF[id].name,birds:Math.max(0,Math.round(num(fs.querySelector('.s-rec').value))),start:st,openDate:fs.querySelector('.s-open').value||'',shedCount:Math.max(1,Math.min(50,Math.round(num(fs.querySelector('.s-count').value)||10))),sheds}});return out}
+$('#sf').addEventListener('change',e=>{if(!e.target.classList.contains('s-count'))return;const tmp=readSettings();IDS.forEach(i=>farms[i]={...farms[i],...tmp[i]});renderSettings()});
+$('#sf').addEventListener('input',e=>{const fs=e.target.closest('fieldset');if(!fs||e.target.classList.contains('s-count'))return;
+  fs.querySelector('.s-sum').textContent=fmt([...fs.querySelectorAll('.s-b')].reduce((a,x)=>a+num(x.value),0))});
+$('#sf').addEventListener('submit',async e=>{e.preventDefault();const out=readSettings();
   const m=$('#smsg');m.className='msg';m.textContent='جارٍ الحفظ…';try{await setDoc(doc(db,'settings','farms'),out);m.className='msg ok';m.textContent='تم الحفظ.'}catch(x){m.className='msg bad';m.textContent='تعذّر الحفظ.'}});
 
 function all(){renderPick();renderLast();renderDash();if(!document.activeElement?.closest('#sf'))renderSettings()}
