@@ -76,9 +76,10 @@ td.n{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
   <h1>متابعة المزارع الثلاث</h1>
   <p>النفوق واستهلاك العلف في مكان واحد</p>
   <nav id="nav" class="hide">
-    <a href="#entry" data-v="entry">تسجيل اليوم</a>
-    <a href="#dash" data-v="dash" class="adm">لوحة المتابعة</a>
-    <a href="#feed" data-v="feed">العلف</a>
+    <a href="#entry" data-v="entry">النفوق</a>
+    <a href="#sfeed" data-v="sfeed">علف العنابر</a>
+    <a href="#feed" data-v="feed">فواتير العلف</a>
+    <a href="#dash" data-v="dash" class="adm">المتابعة</a>
     <a href="#settings" data-v="settings" class="adm">الإعدادات</a>
   </nav>
 </header>
@@ -109,14 +110,10 @@ td.n{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
           <div class="note" style="margin-bottom:6px">نفوق العنابر (اترك الخانة فاضية إذا ما فيه نفوق = صفر)</div>
           <div class="scroll"><table class="sheds" id="shedT"></table></div>
         </div>
-        <div>
-          <div class="note" style="margin-bottom:6px">علف العنابر (<span class="unit">كيس</span>) — الوارد للعنبر اليوم والمستهلك، والمتبقي يتحسب لحاله</div>
-          <div class="scroll"><table class="sheds" id="feedT"></table></div>
-        </div>
         <label style="max-width:560px">ملاحظات<input id="nt" maxlength="300"></label>
         <div id="exists" class="note"></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn" id="save" type="submit">حفظ</button>
+          <button class="btn" id="save" type="submit">حفظ النفوق</button>
           <button class="ghost" id="xlsOne" type="button">تنزيل تقرير هذا اليوم Excel</button>
         </div>
         <div class="msg" id="fmsg"></div>
@@ -147,6 +144,19 @@ td.n{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
         <div class="tabs" id="flt"></div>
         <div class="scroll"><table class="stack"><thead><tr><th>التاريخ</th><th>المزرعة</th><th>النفوق</th><th>العلف</th><th>ملاحظات</th><th>سجّله</th><th></th></tr></thead><tbody id="all"></tbody></table></div>
       </div>
+    </section>
+
+    <section class="view" id="v-sfeed">
+      <form class="card" id="f2" style="display:grid;gap:14px">
+        <div id="pickWrap2"><div class="note" style="margin-bottom:6px">المزرعة</div><div class="farms" id="pick2"></div></div>
+        <label style="max-width:260px">التاريخ<input type="date" id="d2" required></label>
+        <div>
+          <div class="note" style="margin-bottom:6px">علف العنابر (<span class="unit">كيس</span>): اكتب الوارد للعنبر اليوم والمستهلك، والمتبقي يتحسب لحاله</div>
+          <div class="scroll"><table class="sheds" id="feedT"></table></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="save2" type="submit">حفظ العلف</button><button class="ghost" id="xlsOne2" type="button">تنزيل تقرير هذا اليوم Excel</button></div>
+        <div class="msg" id="f2msg"></div>
+      </form>
     </section>
 
     <section class="view" id="v-feed">
@@ -249,38 +259,38 @@ onAuthStateChanged(auth,u=>{unsubs.forEach(f=>f());unsubs=[];entries=[];invoices
   $('#conn').textContent='';
   $('#login').classList.add('hide');$('#app').classList.remove('hide');$('#nav').classList.remove('hide');
   document.querySelectorAll('.adm').forEach(a=>a.classList.toggle('hide',!admin));
-  $('#pickWrap').classList.toggle('hide',!admin);
+  $('#pickWrap').classList.toggle('hide',!admin);$('#pickWrap2').classList.toggle('hide',!admin);
   cur=myFarm||cur;invFarm=myFarm||invFarm;$('#invPickWrap').classList.toggle('hide',!admin);
   $('#whoami').textContent=(admin?'المدير':nm(myFarm))+' · '+u.email;
-  all();renderShedForm();start();show();});
+  all();renderShedForm();renderFeedForm();start();show();});
 
 function start(){
   $('#conn').className='msg';$('#conn').textContent='جارٍ تحميل البيانات…';
   unsubs.push(onSnapshot(doc(db,'settings','farms'),sn=>{if(sn.exists()){const v=sn.data();IDS.forEach(id=>farms[id]={...DEF[id],...(v[id]||{})})}
     $('#whoami').textContent=(admin?'المدير':nm(myFarm))+' · '+(auth.currentUser?.email||'');
-    all();if(!document.activeElement?.closest('#f'))renderShedForm()},()=>{}));
+    all();if(!document.activeElement?.closest('#f'))renderShedForm();if(!document.activeElement?.closest('#f2'))renderFeedForm()},()=>{}));
   const iq=admin?collection(db,'invoices'):query(collection(db,'invoices'),where('farm','==',myFarm));
   unsubs.push(onSnapshot(iq,sn=>{invoices=sn.docs.map(x=>({id:x.id,...x.data()}));renderInv()},e=>{$('#invTable').innerHTML=`<tr><td class="empty">${e.code==='permission-denied'?'لا توجد صلاحية لفواتير العلف — حدّث قواعد Firestore.':esc(e.message)}</td></tr>`}));
   const q=admin?collection(db,'entries'):query(collection(db,'entries'),where('farm','==',myFarm));
   unsubs.push(onSnapshot(q,{includeMetadataChanges:true},sn=>{
     entries=sn.docs.map(x=>({id:x.id,pending:x.metadata.hasPendingWrites,...x.data()}));
     $('#conn').className='msg';$('#conn').textContent=sn.metadata.fromCache?'أنت غير متصل بالإنترنت الآن، البيانات المعروضة قد لا تكون محدّثة. ما تسجّله يُرسل تلقائياً عند عودة الاتصال.':'';
-    all();if(!document.activeElement?.closest('#f'))renderShedForm()},
+    all();if(!document.activeElement?.closest('#f'))renderShedForm();if(!document.activeElement?.closest('#f2'))renderFeedForm()},
     e=>showErr(e.code==='permission-denied'?'لا توجد صلاحية لقراءة البيانات (راجع قواعد Firestore).':e.message)));
 }
 
 /* ---------- views ---------- */
-function show(){let v=location.hash.slice(1);if(!['entry','dash','settings','feed'].includes(v)||(!admin&&!['entry','feed'].includes(v)))v=admin?'dash':'entry';
+function show(){let v=location.hash.slice(1);if(!['entry','sfeed','dash','settings','feed'].includes(v)||(!admin&&!['entry','sfeed','feed'].includes(v)))v=admin?'dash':'entry';
   document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
   document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.dataset.v===v));if(v==='dash')drawChart()}
 addEventListener('hashchange',show);
 
 /* ---------- entry (per shed) ---------- */
-$('#d').value=today();$('#d').max=today();$('#xd').value=today();$('#xd').max=today();
-function renderPick(){$('#pick').innerHTML=IDS.map(id=>`<button type="button" data-id="${id}" style="--c:${col(id)}" class="${id===cur?'on':''}">${esc(nm(id))}</button>`).join('');
+$('#d').value=today();$('#d').max=today();$('#d2').value=today();$('#d2').max=today();$('#xd').value=today();$('#xd').max=today();
+function renderPick(){$('#pick2').innerHTML=$('#pick').innerHTML=IDS.map(id=>`<button type="button" data-id="${id}" style="--c:${col(id)}" class="${id===cur?'on':''}">${esc(nm(id))}</button>`).join('');
   $('#lastT').textContent='آخر 7 أيام — '+nm(cur)}
-$('#pick').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cur=b.dataset.id;renderPick();renderShedForm();renderLast()});
-$('#d').addEventListener('change',renderShedForm);
+['#pick','#pick2'].forEach(s=>$(s).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cur=b.dataset.id;renderPick();renderShedForm();renderFeedForm();renderLast()}));
+$('#d').addEventListener('change',renderShedForm);$('#d2').addEventListener('change',renderFeedForm);
 function renderShedForm(){const date=$('#d').value||today(),rows=shedRows(cur,date),e=entryOf(cur,date);
   const v=x=>x==null?'':x;
   $('#shedT').innerHTML=`<thead><tr><th>عنبر</th><th>العمر</th><th>ليل</th><th>صباح</th><th>عزل</th><th>مجموع</th><th>رصيد</th></tr></thead><tbody>`+
@@ -290,37 +300,44 @@ function renderShedForm(){const date=$('#d').value||today(),rows=shedRows(cur,da
       <td><input type="number" min="0" step="1" inputmode="numeric" data-f="i" value="${v(r.i)}"></td>
       <td class="c t">${r.total??''}</td><td class="c b" data-bal="${r.balance==null?'':r.balance+(r.total||0)}">${r.balance==null?'—':fmt(r.balance)}</td></tr>`).join('')+
     `</tbody><tfoot><tr><td class="c">Total</td><td></td><td class="c" id="sn"></td><td class="c" id="sm"></td><td class="c" id="si"></td><td class="c" id="st"></td><td class="c" id="sb"></td></tr></tfoot>`;
+  $('#nt').value=e?.notes||'';
+  $('#exists').textContent=e?'يوجد سجل لهذا اليوم، وأي تعديل يُحفظ مكانه.':'';
+  recalcMort()}
+function renderFeedForm(){const date=$('#d2').value||today(),rows=shedRows(cur,date);const v=x=>x==null?'':x;
   document.querySelectorAll('.unit').forEach(u=>u.textContent=unitOf(cur));
   $('#feedT').innerHTML=`<thead><tr><th>عنبر</th><th>وارد</th><th>مستهلك</th><th>متبقي</th></tr></thead><tbody>`+
     rows.map((r,k)=>`<tr><td class="c"><b>${r.no}</b></td><td><input type="number" min="0" step="0.5" inputmode="decimal" data-f="r" value="${v(r.r)}"></td><td><input type="number" min="0" step="0.5" inputmode="decimal" data-f="f" value="${v(r.f)}"></td><td class="c fr" data-base="${r.feedRem==null?'':r.feedRem-num(r.r)+num(r.f)}">${r.feedRem==null?'—':fmt(r.feedRem,2)}</td></tr>`).join('')+
     `</tbody><tfoot><tr><td class="c">Total</td><td class="c" id="fr"></td><td class="c" id="ff"></td><td class="c" id="frem"></td></tr></tfoot>`;
-  $('#nt').value=e?.notes||'';
-  $('#exists').textContent=e?'يوجد سجل لهذا اليوم، وأي تعديل يُحفظ مكانه.':'';
-  recalcForm()}
-function recalcForm(){let S={n:0,m:0,i:0,t:0,b:0},hasB=false;
+  recalcFeed()}
+function recalcMort(){let S={n:0,m:0,i:0,t:0,b:0},hasB=false;
   $('#shedT').querySelectorAll('tbody tr').forEach(tr=>{const g=f=>num(tr.querySelector(`[data-f="${f}"]`).value);
     const n=g('n'),m=g('m'),i=g('i'),t=n+m+i,any=[...tr.querySelectorAll('input')].some(x=>x.value!=='');
     tr.querySelector('.t').textContent=any?t:'';
     const base=tr.querySelector('.b').dataset.bal;
     if(base!==''){const b=+base-t;tr.querySelector('.b').textContent=fmt(b);S.b+=b;hasB=true}
     S.n+=n;S.m+=m;S.i+=i;S.t+=t});
-  let R=0,Fc=0,Rem=0,hasR=false;$('#feedT').querySelectorAll('tbody tr').forEach(tr=>{const r=num(tr.querySelector('[data-f="r"]').value),f=num(tr.querySelector('[data-f="f"]').value);R+=r;Fc+=f;
-    const c=tr.querySelector('.fr'),b=c.dataset.base;if(b!==''||r||f){const x=Math.round((num(b)+r-f)*100)/100;c.textContent=fmt(x,2);Rem+=x;hasR=true}else c.textContent='—'});
-  $('#fr').textContent=fmt(R,2);$('#ff').textContent=fmt(Fc,2);$('#frem').textContent=hasR?fmt(Rem,2):'—';
   $('#sn').textContent=S.n;$('#sm').textContent=S.m;$('#si').textContent=S.i;$('#st').textContent=S.t;$('#sb').textContent=hasB?fmt(S.b):'—'}
-$('#shedT').addEventListener('input',recalcForm);$('#feedT').addEventListener('input',recalcForm);
-$('#f').addEventListener('submit',async ev=>{ev.preventDefault();const msg=$('#fmsg');
-  const date=$('#d').value;if(!date){msg.className='msg bad';msg.textContent='اختر التاريخ.';return}
+function recalcFeed(){let R=0,Fc=0,Rem=0,hasR=false;$('#feedT').querySelectorAll('tbody tr').forEach(tr=>{const r=num(tr.querySelector('[data-f="r"]').value),f=num(tr.querySelector('[data-f="f"]').value);R+=r;Fc+=f;
+    const c=tr.querySelector('.fr'),b=c.dataset.base;if(b!==''||r||f){const x=Math.round((num(b)+r-f)*100)/100;c.textContent=fmt(x,2);Rem+=x;hasR=true}else c.textContent='—'});
+  $('#fr').textContent=fmt(R,2);$('#ff').textContent=fmt(Fc,2);$('#frem').textContent=hasR?fmt(Rem,2):'—'}
+$('#shedT').addEventListener('input',recalcMort);$('#feedT').addEventListener('input',recalcFeed);
+async function saveEntry(date,sheds,notes,msg,btn,label){
+  if(!date){msg.className='msg bad';msg.textContent='اختر التاريخ.';return}
   if(date>today()){msg.className='msg bad';msg.textContent='لا يمكن التسجيل لتاريخ قادم.';return}
-  const ftr=[...$('#feedT').querySelectorAll('tbody tr')];
-  const sheds=[...$('#shedT').querySelectorAll('tbody tr')].map((tr,k)=>{const g=f=>Math.max(0,Math.round(num(tr.querySelector(`[data-f="${f}"]`).value)));const q=f=>Math.max(0,Math.round(num(ftr[k]?.querySelector(`[data-f="${f}"]`)?.value)*100)/100);return{n:g('n'),m:g('m'),i:g('i'),r:q('r'),f:q('f')}});
   const mortality=sheds.reduce((a,x)=>a+x.n+x.m+x.i,0),feed=Math.round(sheds.reduce((a,x)=>a+x.f,0)*100)/100;
-  $('#save').disabled=true;msg.className='msg';msg.textContent='جارٍ الحفظ…';
-  const p=setDoc(doc(db,'entries',cur+'_'+date),{farm:cur,date,sheds,mortality,feed,notes:$('#nt').value.trim().slice(0,300),by:auth.currentUser.email,at:new Date().toISOString()});
-  const t=setTimeout(()=>{msg.className='msg ok';msg.textContent='تم الحفظ على الجهاز، وسيُرسل تلقائياً عند توفّر الإنترنت.';$('#save').disabled=false},4000);
-  try{await p;clearTimeout(t);msg.className='msg ok';msg.textContent=`تم حفظ سجل ${nm(cur)} ليوم ${dshort(date)}: نفوق ${mortality}.`}
+  btn.disabled=true;msg.className='msg';msg.textContent='جارٍ الحفظ…';
+  const p=setDoc(doc(db,'entries',cur+'_'+date),{farm:cur,date,sheds,mortality,feed,notes:String(notes||'').trim().slice(0,300),by:auth.currentUser.email,at:new Date().toISOString()});
+  const t=setTimeout(()=>{msg.className='msg ok';msg.textContent='تم الحفظ على الجهاز، وسيُرسل تلقائياً عند توفّر الإنترنت.';btn.disabled=false},4000);
+  try{await p;clearTimeout(t);msg.className='msg ok';msg.textContent=`تم حفظ ${label} ${nm(cur)} ليوم ${dshort(date)}.`}
   catch(e){clearTimeout(t);msg.className='msg bad';msg.textContent=e.code==='permission-denied'?'لا توجد صلاحية للحفظ (راجع قواعد Firestore).':'تعذّر الحفظ: '+e.message}
-  $('#save').disabled=false});
+  btn.disabled=false}
+const rnd=x=>Math.max(0,Math.round(num(x)*100)/100);
+$('#f').addEventListener('submit',ev=>{ev.preventDefault();const date=$('#d').value,e=entryOf(cur,date);
+  const sheds=[...$('#shedT').querySelectorAll('tbody tr')].map((tr,k)=>{const g=f=>Math.max(0,Math.round(num(tr.querySelector(`[data-f="${f}"]`).value)));const o=e?.sheds?.[k];return{n:g('n'),m:g('m'),i:g('i'),r:rnd(o?.r),f:rnd(o?.f)}});
+  saveEntry(date,sheds,$('#nt').value,$('#fmsg'),$('#save'),'نفوق')});
+$('#f2').addEventListener('submit',ev=>{ev.preventDefault();const date=$('#d2').value,e=entryOf(cur,date);
+  const sheds=[...$('#feedT').querySelectorAll('tbody tr')].map((tr,k)=>{const q=f=>rnd(tr.querySelector(`[data-f="${f}"]`).value);const o=e?.sheds?.[k];return{n:Math.round(num(o?.n)),m:Math.round(num(o?.m)),i:Math.round(num(o?.i)),r:q('r'),f:q('f')}});
+  saveEntry(date,sheds,e?.notes||'',$('#f2msg'),$('#save2'),'علف')});
 function renderLast(){const from=addDays(today(),-6);const rows=entries.filter(e=>e.farm===cur&&e.date>=from).sort((a,b)=>b.date.localeCompare(a.date));
   $('#last').innerHTML=rows.length?rows.map(e=>`<tr><td>${dshort(e.date)}${e.pending?' <span class="note">(لم يُرسل بعد)</span>':''}</td><td class="n red">${fmt(e.mortality)}</td><td class="n">${fmt(e.feed,1)}</td><td>${esc(e.notes)}</td></tr>`).join(''):'<tr><td colspan="4" class="empty">لا توجد سجلات في آخر 7 أيام</td></tr>'}
 
@@ -407,7 +424,7 @@ async function downloadXlsx(ids,date,msgEl,invOnly){
 }
 function save(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}
 $('#xlsAll').addEventListener('click',()=>downloadXlsx(IDS,$('#xd').value||today(),$('#xmsg')));
-$('#xlsOne').addEventListener('click',()=>downloadXlsx([cur],$('#d').value||today(),$('#fmsg')));
+$('#xlsOne').addEventListener('click',()=>downloadXlsx([cur],$('#d').value||today(),$('#fmsg')));$('#xlsOne2').addEventListener('click',()=>downloadXlsx([cur],$('#d2').value||today(),$('#f2msg')));
 
 /* ---------- chart ---------- */
 const s=$('#ch');
