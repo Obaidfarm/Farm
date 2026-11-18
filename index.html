@@ -128,9 +128,11 @@ td.n{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
         <div id="pickWrap3"><div class="note" style="margin-bottom:6px">المزرعة</div><div class="farms" id="pick3"></div></div>
         <div><div class="note" style="margin-bottom:6px">عمر الوزن</div><div class="farms" id="wAges" style="grid-template-columns:repeat(4,minmax(0,1fr))"></div></div>
         <div class="two"><label>تاريخ الوزن<input type="date" id="wD"></label><label>وحدة الوزن<select id="wU"><option value="g">جرام</option><option value="kg">كيلو</option></select></label></div>
+        <div class="two"><label>عدد الخانات<input type="number" id="wN" min="1" max="400" inputmode="numeric"></label><label>عدد الدجاج في كل خانة<input type="number" id="wP" min="1" max="100" inputmode="numeric"></label></div>
         <div class="note" id="wHint"></div>
         <div id="wGrid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px"></div>
         <div class="card" id="wSum" style="background:var(--bg);display:flex;gap:18px;flex-wrap:wrap"></div>
+        <button class="ghost" type="button" id="wMore" style="justify-self:start">+ إضافة 4 خانات</button>
         <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="wSave" type="submit">حفظ الوزن</button><button class="ghost" type="button" id="wX">تنزيل الأوزان Excel</button></div>
         <div class="msg" id="wMsg"></div>
       </form>
@@ -493,32 +495,34 @@ const AGES=[7,14,21,28],SAMPLE=240;
 const wCfg=a=>a===7?{per:10,cells:24}:{per:5,cells:48};
 let wAge=7;
 const wDoc=(id,a)=>invoices.find(x=>x.kind==='w'&&x.farm===id&&x.age===a);
-const wStats=d=>{if(!d)return null;const c=(d.cells||[]).map(num),sum=c.reduce((a,b)=>a+b,0),filled=(d.cells||[]).filter(v=>v!==''&&v!=null).length,cf=wCfg(d.age);
-  const avg=sum/SAMPLE,g=d.unit==='kg'?avg*1000:avg;return{sum,filled,cells:cf.cells,avg,g,unit:d.unit||'g'}};
+const wStats=d=>{if(!d)return null;const c=(d.cells||[]).map(num),sum=c.reduce((a,b)=>a+b,0),filled=(d.cells||[]).filter(v=>v!==''&&v!=null).length,cf=wCfg(d.age),per=+d.per||cf.per,n=+d.n||(d.cells||[]).length||cf.cells;
+  const birds=filled*per,avg=birds?sum/birds:0,g=d.unit==='kg'?avg*1000:avg;return{sum,filled,cells:n,per,birds,avg,g,unit:d.unit||'g'}};
 const fmtW=(v,u)=>u==='kg'?fmt(v,3)+' كجم':fmt(v,1)+' جم';
 function renderWeights(){if(!$('#wGrid'))return;
   $('#wAges').innerHTML=AGES.map(a=>`<button type="button" data-a="${a}" class="${a===wAge?'on':''}" style="--c:var(--green)">عمر ${a}</button>`).join('');
   const d=wDoc(cur,wAge),cf=wCfg(wAge),vals=d?.cells||[];
-  $('#wD').value=d?.date||today();$('#wU').value=d?.unit||'g';
-  $('#wHint').textContent=`عمر ${wAge}: ${cf.cells} خانة، كل خانة وزن ${cf.per} دجاجات = ${cf.cells*cf.per} دجاجة. المتوسط = مجموع الخانات ÷ ${SAMPLE}.`;
-  $('#wGrid').innerHTML=[...Array(cf.cells)].map((_,k)=>`<label style="gap:2px;font-size:12px">${k+1}<input type="number" min="0" step="any" inputmode="decimal" data-k="${k}" value="${vals[k]??''}" style="min-height:42px;padding:6px;text-align:center"></label>`).join('');
-  recalcW();renderWTable()}
+  $('#wD').value=d?.date||today();$('#wU').value=d?.unit||'g';$('#wN').value=d?.n||Math.max(cf.cells,vals.length);$('#wP').value=d?.per||cf.per;drawGrid(vals);recalcW();renderWTable()}
+function drawGrid(vals){const n=Math.max(1,Math.min(400,Math.round(num($('#wN').value)||24))),per=Math.round(num($('#wP').value))||10;
+  $('#wHint').textContent=`عمر ${wAge}: ${n} خانة، كل خانة وزن ${per} دجاجات = ${n*per} دجاجة. المتوسط = مجموع الخانات ÷ عدد الدجاج الموزون.`;
+  $('#wGrid').innerHTML=[...Array(n)].map((_,k)=>`<label style="gap:2px;font-size:12px">${k+1}<input type="number" min="0" step="any" inputmode="decimal" data-k="${k}" value="${vals[k]??''}" style="min-height:42px;padding:6px;text-align:center"></label>`).join('')}
 function readW(){return[...$('#wGrid').querySelectorAll('input')].map(x=>x.value===''?'':Math.round(num(x.value)*1000)/1000)}
-function recalcW(){const s=wStats({age:wAge,cells:readW(),unit:$('#wU').value});
-  $('#wSum').innerHTML=`<div class="note">مجموع الخانات<b style="display:block;font-size:20px;color:var(--ink)">${fmt(s.sum,3)}</b></div><div class="note">الخانات المعبّاة<b style="display:block;font-size:20px;color:var(--ink)">${s.filled} / ${s.cells}</b></div><div class="note">متوسط وزن الدجاجة (÷${SAMPLE})<b style="display:block;font-size:24px;color:var(--green)">${s.sum?fmtW(s.avg,s.unit):'—'}</b></div>`}
+function recalcW(){const s=wStats({age:wAge,cells:readW(),unit:$('#wU').value,per:num($('#wP').value),n:num($('#wN').value)});
+  $('#wSum').innerHTML=`<div class="note">مجموع الخانات<b style="display:block;font-size:20px;color:var(--ink)">${fmt(s.sum,3)}</b></div><div class="note">الخانات المعبّاة<b style="display:block;font-size:20px;color:var(--ink)">${s.filled} / ${s.cells}</b></div><div class="note">متوسط وزن الدجاجة (÷${s.birds})<b style="display:block;font-size:24px;color:var(--green)">${s.sum?fmtW(s.avg,s.unit):'—'}</b></div>`}
 $('#wAges').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;wAge=+b.dataset.a;renderWeights()});
-$('#wGrid').addEventListener('input',recalcW);$('#wU').addEventListener('change',recalcW);
+$('#wGrid').addEventListener('input',recalcW);
+$('#wN').addEventListener('change',()=>{drawGrid(readW());recalcW()});$('#wP').addEventListener('input',()=>{const v=readW();drawGrid(v);recalcW()});
+$('#wMore').addEventListener('click',()=>{const v=readW();$('#wN').value=v.length+4;drawGrid(v);recalcW()});$('#wU').addEventListener('change',recalcW);
 $('#wF').addEventListener('submit',async e=>{e.preventDefault();const m=$('#wMsg');const cells=readW();
   if(!cells.some(v=>v!=='')){m.className='msg bad';m.textContent='اكتب أوزان الخانات أولاً.';return}
   m.className='msg';m.textContent='جارٍ الحفظ…';
-  try{await setDoc(doc(db,'invoices','w_'+cur+'_'+wAge),{kind:'w',farm:cur,age:wAge,date:$('#wD').value||today(),unit:$('#wU').value,cells,by:auth.currentUser.email,at:new Date().toISOString()});
-    const s=wStats({age:wAge,cells,unit:$('#wU').value});m.className='msg ok';m.textContent=`تم حفظ وزن عمر ${wAge} لـ${nm(cur)}: المتوسط ${fmtW(s.avg,s.unit)}.`}
+  try{await setDoc(doc(db,'invoices','w_'+cur+'_'+wAge),{kind:'w',farm:cur,age:wAge,date:$('#wD').value||today(),unit:$('#wU').value,n:cells.length,per:Math.round(num($('#wP').value))||wCfg(wAge).per,cells,by:auth.currentUser.email,at:new Date().toISOString()});
+    const s=wStats({age:wAge,cells,unit:$('#wU').value,per:num($('#wP').value)});m.className='msg ok';m.textContent=`تم حفظ وزن عمر ${wAge} لـ${nm(cur)}: المتوسط ${fmtW(s.avg,s.unit)}.`}
   catch(x){m.className='msg bad';m.textContent=x.code==='permission-denied'?'لا توجد صلاحية — حدّث قواعد Firestore (القواعد اللي آخرها invoices).':'تعذّر الحفظ: '+x.message}});
 function renderWTable(){const ids=admin?IDS:[cur];
   $('#wTable').innerHTML=`<thead><tr><th>المزرعة</th>${AGES.map(a=>`<th>عمر ${a}</th>`).join('')}</tr></thead><tbody>`+
    ids.map(id=>`<tr><td><b>${esc(nm(id))}</b></td>${AGES.map(a=>{const s=wStats(wDoc(id,a));return `<td>${s&&s.sum?fmtW(s.avg,s.unit):'—'}</td>`}).join('')}</tr>`).join('')+'</tbody>'}
 $('#wX').addEventListener('click',async()=>{const m=$('#wMsg'),ids=admin?IDS:[cur];m.className='msg';m.textContent='جارٍ تجهيز الملف…';
-  const block=id=>AGES.map(a=>{const d=wDoc(id,a);if(!d)return null;const s=wStats(d),cf=wCfg(a);return{a,d,s,cf}}).filter(Boolean);
+  const block=id=>AGES.map(a=>{const d=wDoc(id,a);if(!d)return null;const s=wStats(d),cf={per:s.per,cells:(d.cells||[]).length};return{a,d,s,cf}}).filter(Boolean);
   try{if(!window.ExcelJS)throw 0;const wb=new ExcelJS.Workbook();
     const thin={style:'thin',color:{argb:'FF000000'}},B={top:thin,left:thin,bottom:thin,right:thin};
     const sum=wb.addWorksheet('ملخص الأوزان');sum.columns=[18,14,14,14,14].map(w=>({width:w}));
@@ -527,12 +531,12 @@ $('#wX').addEventListener('click',async()=>{const m=$('#wMsg'),ids=admin?IDS:[cu
       ws.getCell('A1').value=`${nm(id)} - عمر ${a} - ${d.date}`;ws.getCell('A1').font={name:'Arial',bold:true,size:13};
       ws.getCell('A3').value='خانة';ws.getCell('B3').value=`وزن ${cf.per} دجاجات (${d.unit==='kg'?'كجم':'جم'})`;['A3','B3'].forEach(c=>{ws.getCell(c).font={name:'Arial',bold:true};ws.getCell(c).border=B});
       cf.cells&&[...Array(cf.cells)].forEach((_,k)=>{ws.getCell(4+k,1).value=k+1;ws.getCell(4+k,2).value=d.cells?.[k]===''||d.cells?.[k]==null?null:num(d.cells[k]);[1,2].forEach(c=>{ws.getCell(4+k,c).border=B;ws.getCell(4+k,c).alignment={horizontal:'center'}})});
-      const r=4+cf.cells;ws.getCell(r,1).value='المجموع';ws.getCell(r,2).value={formula:`SUM(B4:B${r-1})`};ws.getCell(r+1,1).value='المتوسط ÷'+SAMPLE;ws.getCell(r+1,2).value={formula:`B${r}/${SAMPLE}`};ws.getCell(r+1,2).numFmt='0.000';
+      const r=4+cf.cells;ws.getCell(r,1).value='المجموع';ws.getCell(r,2).value={formula:`SUM(B4:B${r-1})`};ws.getCell(r+1,1).value='المتوسط ÷'+s.birds;ws.getCell(r+1,2).value={formula:`B${r}/${s.birds||1}`};ws.getCell(r+1,2).numFmt='0.000';
       [r,r+1].forEach(rr=>[1,2].forEach(c=>{ws.getCell(rr,c).font={name:'Arial',bold:true};ws.getCell(rr,c).border=B}))}
     const buf=await wb.xlsx.writeBuffer();save(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`الأوزان-${today()}.xlsx`)}
   catch(err){const td=(v,b)=>`<td style="border:1px solid #000;text-align:center;${b?'font-weight:bold':''}">${esc(v)}</td>`;
     const html='<html><head><meta charset="utf-8"></head><body><h3>ملخص الأوزان</h3><table style="border-collapse:collapse"><tr>'+['المزرعة',...AGES.map(a=>'عمر '+a)].map(x=>td(x,1)).join('')+'</tr>'+ids.map(id=>'<tr>'+td(nm(id),1)+AGES.map(a=>{const s=wStats(wDoc(id,a));return td(s&&s.sum?fmtW(s.avg,s.unit):'')}).join('')+'</tr>').join('')+'</table>'+
-      ids.map(id=>block(id).map(({a,d,s,cf})=>`<h4>${esc(nm(id))} - عمر ${a} - ${esc(d.date)}</h4><table style="border-collapse:collapse"><tr>${td('خانة',1)}${td('وزن '+cf.per+' دجاجات',1)}</tr>`+[...Array(cf.cells)].map((_,k)=>`<tr>${td(k+1)}${td(d.cells?.[k]??'')}</tr>`).join('')+`<tr>${td('المجموع',1)}${td(fmt(s.sum,3),1)}</tr><tr>${td('المتوسط ÷'+SAMPLE,1)}${td(fmtW(s.avg,s.unit),1)}</tr></table>`).join('')).join('')+'</body></html>';
+      ids.map(id=>block(id).map(({a,d,s,cf})=>`<h4>${esc(nm(id))} - عمر ${a} - ${esc(d.date)}</h4><table style="border-collapse:collapse"><tr>${td('خانة',1)}${td('وزن '+cf.per+' دجاجات',1)}</tr>`+[...Array(cf.cells)].map((_,k)=>`<tr>${td(k+1)}${td(d.cells?.[k]??'')}</tr>`).join('')+`<tr>${td('المجموع',1)}${td(fmt(s.sum,3),1)}</tr><tr>${td('المتوسط ÷'+s.birds,1)}${td(fmtW(s.avg,s.unit),1)}</tr></table>`).join('')).join('')+'</body></html>';
     save(new Blob(['﻿'+html],{type:'application/vnd.ms-excel'}),`الأوزان-${today()}.xls`)}
   m.className='msg ok';m.textContent='تم تنزيل الملف.'});
 
