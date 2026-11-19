@@ -305,7 +305,7 @@ function show(){let v=location.hash.slice(1);if(!['entry','sfeed','dash','settin
 addEventListener('hashchange',show);
 
 /* ---------- entry (per shed) ---------- */
-$('#d').value=today();$('#d').max=today();$('#d2').value=today();$('#d2').max=today();$('#xd').value=today();$('#xd').max=today();
+$('#d').value=today();$('#d').max=addDays(today(),1);$('#d2').value=today();$('#d2').max=addDays(today(),1);$('#xd').value=today();$('#xd').max=today();
 function renderPick(){$('#pick3').innerHTML=$('#pick2').innerHTML=$('#pick').innerHTML=IDS.map(id=>`<button type="button" data-id="${id}" style="--c:${col(id)}" class="${id===cur?'on':''}">${esc(nm(id))}</button>`).join('');
   $('#lastT').textContent='آخر 7 أيام — '+nm(cur)}
 ['#pick','#pick2','#pick3'].forEach(s=>$(s).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cur=b.dataset.id;renderPick();renderWeights();renderShedForm();renderFeedForm();renderLast()}));
@@ -342,7 +342,7 @@ function recalcFeed(){let R=0,Fc=0,Rem=0,hasR=false;$('#feedT').querySelectorAll
 $('#shedT').addEventListener('input',recalcMort);$('#feedT').addEventListener('input',recalcFeed);
 async function saveEntry(date,sheds,notes,msg,btn,label){
   if(!date){msg.className='msg bad';msg.textContent='اختر التاريخ.';return}
-  if(date>today()){msg.className='msg bad';msg.textContent='لا يمكن التسجيل لتاريخ قادم.';return}
+  if(date>addDays(today(),1)){msg.className='msg bad';msg.textContent='يمكن التسجيل لغاية تاريخ بكرة فقط.';return}
   const mortality=sheds.reduce((a,x)=>a+x.n+x.m+x.i,0),feed=Math.round(sheds.reduce((a,x)=>a+x.f,0)*100)/100;
   btn.disabled=true;msg.className='msg';msg.textContent='جارٍ الحفظ…';
   const p=setDoc(doc(db,'entries',cur+'_'+date),{farm:cur,date,sheds,mortality,feed,notes:String(notes||'').trim().slice(0,300),by:auth.currentUser.email,at:new Date().toISOString()});
