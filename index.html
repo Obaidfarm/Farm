@@ -173,7 +173,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}input[type=num
     <section class="view" id="v-salaries">
       <div class="card" style="display:grid;gap:14px">
         <div><div class="note" style="margin-bottom:6px">المزرعة</div><div class="farms" id="pick6"></div></div>
-        <label style="max-width:260px">الشهر<input type="month" id="sM"></label>
+        <div style="display:flex;gap:8px;max-width:360px"><label style="flex:2">الشهر<select id="sMo"></select></label><label style="flex:1">السنة<select id="sY"></select></label><input type="hidden" id="sM"></div>
         <div class="note" id="sNote"></div>
         <div id="sT">
           <div class="card" style="padding:12px;border-top:4px solid var(--f3)"><h3 style="margin:0 0 8px">رواتب البنك</h3><div class="scroll"><table class="sheds" id="sTB" style="font-size:14px"></table></div><button class="ghost" type="button" id="sAddB" style="margin-top:8px">+ إضافة موظف بنك</button></div>
@@ -297,7 +297,8 @@ const addDays=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);r
 const dayDiff=(a,b)=>Math.round((new Date(a+'T12:00:00')-new Date(b+'T12:00:00'))/864e5);
 const dshort=s=>new Date(s+'T12:00:00').toLocaleDateString('ar-SA-u-ca-gregory-nu-latn',{day:'numeric',month:'short'});
 const farmOfEmail=e=>{for(const id of IDS)if(low(FARM_EMAILS[id])===low(e))return id;return null};
-const num=v=>{const n=+v;return isFinite(n)&&v!==''&&v!=null?n:0};
+const toEn=s=>String(s??'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٬,]/g,'').replace('٫','.').trim();
+const num=v=>{if(v===''||v==null)return 0;const n=+toEn(v);return isFinite(n)?n:0};
 
 /* ---------- farm / shed model ---------- */
 function shedList(id){const f=farms[id],n=Math.max(1,Math.min(50,Math.round(+f.shedCount||10)));
@@ -656,14 +657,15 @@ const prevMonth=m=>{const [y,mo]=m.split('-').map(Number);const d=new Date(y,mo-
 const salPrev=(id,m)=>Object.keys(sal).filter(k=>k.startsWith(id+'_')&&k.slice(id.length+1)<m).sort().pop();
 const salRows=(id,m)=>{if(sal[id+'_'+m])return sal[id+'_'+m].rows;const p=salPrev(id,m);if(p)return sal[p].rows;return SAL_DEF[id].map(([name,amount,pay])=>({name,amount,pay}))};
 let sEdit=[];
-function startSalaries(){if(!admin||salUnsub)return;$('#sM').value=curMonth();
+function setSalMonth(m){$('#sM').value=m;$('#sMo').value=String(+m.slice(5,7));$('#sY').value=m.slice(0,4)}
+function startSalaries(){if(!admin||salUnsub)return;setSalMonth(curMonth());
   salUnsub=onSnapshot(collection(db,'salaries'),sn=>{sal=Object.fromEntries(sn.docs.map(d=>[d.id,d.data()]));if(!salDirty)loadSal();renderSalAll()},e=>{$('#sMsg').className='msg bad';$('#sMsg').textContent=e.code==='permission-denied'?'لا توجد صلاحية للرواتب — الصق القواعد الجديدة في Firebase (اللي فيها salaries).':e.message});unsubs.push(()=>{salUnsub&&salUnsub();salUnsub=null})}
 function loadSal(){const m=$('#sM').value||curMonth();sEdit=structuredClone(salRows(salFarm,m)||[]);salDirty=false;
   const p=salPrev(salFarm,m);$('#sNote').textContent=sal[salFarm+'_'+m]?'رواتب هذا الشهر محفوظة.':(p?'الأسماء جاهزة من آخر شهر محفوظ ('+p.slice(salFarm.length+1)+') — عدّل اللي تبغاه واضغط حفظ.':'الأسماء من ملفاتك — عدّل اللي تبغاه واضغط حفظ.');renderSal()}
 function salSums(rows){const b=rows.filter(r=>r.pay!=='cash').reduce((a,r)=>a+num(r.amount),0),c=rows.filter(r=>r.pay==='cash').reduce((a,r)=>a+num(r.amount),0);return{b,c,t:b+c}}
 function renderSal(){$('#pick6').innerHTML=IDS.map(id=>`<button type="button" data-id="${id}" style="--c:${col(id)}" class="${id===salFarm?'on':''}">${esc(nm(id))}</button>`).join('');
   const grp=(pay,title)=>{const L=sEdit.map((r,i)=>({...r,i})).filter(r=>(r.pay==='cash')===(pay==='cash'));const s=L.reduce((a,r)=>a+num(r.amount),0);
-    return `<thead><tr><th style="width:26px">م</th><th>الاسم</th><th style="width:70px">الراتب</th><th style="width:34px"></th></tr></thead><tbody>`+(L.length?L.map((r,k)=>`<tr data-i="${r.i}"><td class="c">${k+1}</td><td><input class="s-n" value="${esc(r.name)}" style="max-width:none;width:100%;min-width:150px;text-align:start;font-size:15px"></td><td><input type="number" min="0" class="s-a" value="${r.amount??''}" style="max-width:none;width:64px;min-width:0"></td><td><button type="button" class="ghost s-del" title="حذف" style="min-height:34px;padding:0 6px">✕</button></td></tr>`).join(''):'<tr><td colspan="4" class="empty">لا يوجد موظفين</td></tr>')+
+    return `<thead><tr><th style="width:26px">م</th><th>الاسم</th><th style="width:70px">الراتب</th><th style="width:34px"></th></tr></thead><tbody>`+(L.length?L.map((r,k)=>`<tr data-i="${r.i}"><td class="c">${k+1}</td><td><input class="s-n" value="${esc(r.name)}" style="max-width:none;width:100%;min-width:150px;text-align:start;font-size:15px"></td><td><input type="text" inputmode="numeric" dir="ltr" class="s-a" value="${r.amount??''}" style="max-width:none;width:64px;min-width:0"></td><td><button type="button" class="ghost s-del" title="حذف" style="min-height:34px;padding:0 6px">✕</button></td></tr>`).join(''):'<tr><td colspan="4" class="empty">لا يوجد موظفين</td></tr>')+
       `</tbody><tfoot><tr style="background:var(--bg)"><td></td><td style="text-align:start;padding:6px"><b>إجمالي ${title}</b></td><td class="c"><b class="tot-${pay}">${fmt(s)}</b></td><td></td></tr></tfoot>`};
   $('#sTB').innerHTML=grp('bank','البنك');$('#sTC').innerHTML=grp('cash','الكاش');
   const S=salSums(sEdit);$('#sTot').innerHTML=`<div class="note">بنك<b style="display:block;font-size:20px;color:var(--ink)">${fmt(S.b)}</b></div><div class="note">كاش<b style="display:block;font-size:20px;color:var(--ink)">${fmt(S.c)}</b></div><div class="note">إجمالي ${esc(nm(salFarm))}<b style="display:block;font-size:24px;color:var(--green)">${fmt(S.t)}</b></div><div class="note">عدد الموظفين<b style="display:block;font-size:20px;color:var(--ink)">${sEdit.length}</b></div>`}
@@ -671,7 +673,12 @@ function renderSalAll(){const m=$('#sM').value||curMonth();let G={b:0,c:0,t:0,n:
   const rows=IDS.map(id=>{const r=id===salFarm?sEdit:(salRows(id,m)||[]),S=salSums(r);G.b+=S.b;G.c+=S.c;G.t+=S.t;G.n+=r.length;return `<tr><td><b>${esc(nm(id))}</b></td><td class="c">${r.length}</td><td class="c">${fmt(S.b)}</td><td class="c">${fmt(S.c)}</td><td class="c"><b>${fmt(S.t)}</b></td></tr>`}).join('');
   $('#sAll').innerHTML=`<thead><tr><th>المزرعة</th><th>الموظفين</th><th>بنك</th><th>كاش</th><th>الإجمالي</th></tr></thead><tbody>${rows}<tr style="background:var(--bg)"><td><b>المجموع</b></td><td class="c"><b>${G.n}</b></td><td class="c"><b>${fmt(G.b)}</b></td><td class="c"><b>${fmt(G.c)}</b></td><td class="c"><b style="color:var(--green)">${fmt(G.t)}</b></td></tr></tbody>`}
 $('#pick6').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(salDirty&&!b.dataset.ok){$('#sMsg').className='msg bad';$('#sMsg').textContent='فيه تعديلات ما انحفظت — احفظ أولاً أو اضغط المزرعة مرة ثانية لتجاهلها.';b.dataset.ok='1';return}salFarm=b.dataset.id;$('#sMsg').textContent='';loadSal();renderSalAll()});
-$('#sM').addEventListener('change',()=>{loadSal();renderSalAll()});
+{const MN=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  $('#sMo').innerHTML=MN.map((n,i)=>`<option value="${i+1}">${i+1} - ${n}</option>`).join('');
+  const y0=+today().slice(0,4);$('#sY').innerHTML=[...Array(6)].map((_,i)=>y0-2+i).map(y=>`<option value="${y}">${y}</option>`).join('');
+  setSalMonth(curMonth());
+  const onM=()=>{$('#sM').value=$('#sY').value+'-'+String($('#sMo').value).padStart(2,'0');loadSal();renderSalAll()};
+  $('#sMo').addEventListener('change',onM);$('#sY').addEventListener('change',onM)}
 $('#sT').addEventListener('input',e=>{const tr=e.target.closest('tr[data-i]');if(!tr)return;const r=sEdit[+tr.dataset.i];if(e.target.classList.contains('s-n'))r.name=e.target.value;if(e.target.classList.contains('s-a'))r.amount=e.target.value===''?'':num(e.target.value);salDirty=true;
   const S=salSums(sEdit);$('#sT').querySelector('.tot-bank').textContent=fmt(S.b);$('#sT').querySelector('.tot-cash').textContent=fmt(S.c);$('#sTot').querySelectorAll('b')[0].textContent=fmt(S.b);$('#sTot').querySelectorAll('b')[1].textContent=fmt(S.c);$('#sTot').querySelectorAll('b')[2].textContent=fmt(S.t);renderSalAll()});
 $('#sT').addEventListener('change',e=>{if(e.target.classList.contains('s-a'))renderSal()});
