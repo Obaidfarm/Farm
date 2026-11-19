@@ -158,7 +158,10 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}input[type=num
         <div class="fig"><svg id="ch"></svg></div>
         <div class="legend" id="lg"></div>
       </div>
-      <h2>كل السجلات</h2>
+      <h2>سجل الدورات</h2>
+      <div class="card"><div class="scroll"><table class="sheds" id="cycT"></table></div>
+        <div style="margin-top:10px"><button class="ghost" type="button" id="cycX">تنزيل سجل الدورات Excel</button> <span class="msg" id="cycM"></span></div></div>
+      <h2>كل السجلات (الدورة الحالية)</h2>
       <div class="card">
         <div class="tabs" id="flt"></div>
         <div class="scroll"><table class="stack"><thead><tr><th>التاريخ</th><th>المزرعة</th><th>النفوق</th><th>العلف</th><th>ملاحظات</th><th>سجّله</th><th></th></tr></thead><tbody id="all"></tbody></table></div>
@@ -254,6 +257,10 @@ const num=v=>{const n=+v;return isFinite(n)&&v!==''&&v!=null?n:0};
 function shedList(id){const f=farms[id],n=Math.max(1,Math.min(50,Math.round(+f.shedCount||10)));
   return [...Array(n)].map((_,k)=>({birds:+(f.sheds?.[k]?.birds)||0,feed0:+(f.sheds?.[k]?.feed0??DEF[id].sheds?.[k]?.feed0)||0,start:f.sheds?.[k]?.start||f.start||''}))}
 const unitOf=id=>farms[id].unit||'كيس';
+const BASE_CYC={f1:19,f2:25,f3:23};
+const cyc=id=>+farms[id].cycle||BASE_CYC[id];
+const cycStart=id=>farms[id].cycleStart||'';
+const inCycle=(id,date)=>!cycStart(id)||date>=cycStart(id);
 function received(id){return +farms[id].birds||shedList(id).reduce((a,x)=>a+x.birds,0)}
 const hasOpen=id=>shedList(id).some(x=>x.birds>0);
 const openDate=id=>farms[id].openDate||'';
@@ -362,15 +369,19 @@ function renderLast(){const from=addDays(today(),-6);const rows=entries.filter(e
   $('#last').innerHTML=rows.length?rows.map(e=>`<tr><td>${dshort(e.date)}${e.pending?' <span class="note">(لم يُرسل بعد)</span>':''}</td><td class="n red">${fmt(e.mortality)}</td><td class="n">${fmt(e.feed,1)}</td><td>${esc(e.notes)}</td></tr>`).join(''):'<tr><td colspan="4" class="empty">لا توجد سجلات في آخر 7 أيام</td></tr>'}
 
 /* ---------- dashboard ---------- */
-function stats(id){const st=farmStart(id),list=entries.filter(e=>e.farm===id&&(!st||e.date>=st));
+function stats(id){const st=farmStart(id),list=entries.filter(e=>e.farm===id&&(!st||e.date>=st)&&inCycle(id,e.date));
   const feed=list.reduce((s,e)=>s+(+e.feed||0),0),birds=received(id),t=list.find(e=>e.date===today());
   let alive,mort;
   if(hasOpen(id)&&today()>=openDate(id)){alive=shedRows(id,today()).reduce((a,r)=>a+(r.balance||0),0);mort=birds?Math.max(0,birds-alive):list.reduce((s,e)=>s+(+e.mortality||0),0)}
   else{mort=list.reduce((s,e)=>s+(+e.mortality||0),0);alive=Math.max(0,birds-mort)}
   const from=addDays(today(),-6),w=list.filter(e=>e.date>=from).reduce((s,e)=>s+(+e.mortality||0),0);
-  const age=st?dayDiff(today(),st)+1:null;
+  const age=st&&today()>=st?dayDiff(today(),st)+1:null;
   return{mort,feed,alive,birds,pct:birds>0?mort/birds*100:null,perBird:alive>0?feed/alive:null,t,w,age}}
-function renderDash(){if(!admin)return;let T={birds:0,mort:0,alive:0,feed:0};
+const CYC_HEAD=['المزرعة','الدورة','من','إلى','الأيام','المستلم','النفوق','نسبة النفوق','فواتير العلف (طن)','علف العنابر','وزن 7','وزن 14','وزن 21','وزن 28'];
+function cycRows(){const R=[];IDS.forEach(id=>{[...(farms[id].history||[]),{...cycleSummary(id),current:true}].forEach(c=>R.push([nm(id),c.cycle+(c.current?' (حالية)':''),c.start||'',c.current?'':c.end||'',c.days??'',c.received||0,c.mort||0,c.pct!=null?Math.round(c.pct*100)/100+'%':'',c.feedT||0,c.feedBags||0,...AGES.map(a=>c.w?.[a]??'')]))});return R}
+function renderCycles(){const R=cycRows();
+  $('#cycT').innerHTML=`<thead><tr>${CYC_HEAD.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>`+R.map(r=>`<tr>${r.map((v,k)=>`<td class="c">${typeof v==='number'?fmt(v,k>=8?2:0):esc(v)}</td>`).join('')}</tr>`).join('')+'</tbody>'}
+function renderDash(){if(!admin)return;renderCycles();let T={birds:0,mort:0,alive:0,feed:0};
   $('#cards').innerHTML=IDS.map(id=>{const s=stats(id);T.birds+=s.birds;T.mort+=s.mort;T.alive+=s.alive;T.feed+=s.feed;
     return `<div class="card fc" style="--c:${col(id)}"><h3>${esc(nm(id))}</h3><div class="age">${s.age!=null?'عمر القطيع: '+fmt(s.age)+' يوم · '+shedList(id).length+' عنبر':'حدّد تاريخ الاستلام من الإعدادات'}</div>
     <div class="big">${fmt(s.alive)}</div><div class="note">طائر حي من ${fmt(s.birds)}</div>
@@ -382,9 +393,12 @@ function renderDash(){if(!admin)return;let T={birds:0,mort:0,alive:0,feed:0};
   $('#tot').innerHTML=`<div>الطيور الحية<b>${fmt(T.alive)}</b></div><div>إجمالي النفوق<b class="red">${fmt(T.mort)}${T.birds?' ('+fmt(T.mort/T.birds*100,2)+'%)':''}</b></div>`;
   $('#lg').innerHTML=IDS.map(id=>`<span style="--c:${col(id)}"><i></i>${esc(nm(id))}</span>`).join('');
   $('#flt').innerHTML=[['all','الكل'],...IDS.map(id=>[id,nm(id)])].map(([k,l])=>`<button class="ghost ${filter===k?'on':''}" data-f="${k}">${esc(l)}</button>`).join('');
-  const rows=entries.filter(e=>filter==='all'||e.farm===filter).sort((a,b)=>b.date.localeCompare(a.date)||a.farm.localeCompare(b.farm)).slice(0,300);
+  const rows=entries.filter(e=>(filter==='all'||e.farm===filter)&&inCycle(e.farm,e.date)).sort((a,b)=>b.date.localeCompare(a.date)||a.farm.localeCompare(b.farm)).slice(0,300);
   $('#all').innerHTML=rows.length?rows.map(e=>`<tr><td>${dshort(e.date)}</td><td><span class="dot" style="--c:${col(e.farm)}"></span>${esc(nm(e.farm))}</td><td class="n red">${fmt(e.mortality)}</td><td class="n">${fmt(e.feed,1)}</td><td>${esc(e.notes)}</td><td dir="ltr" style="text-align:start">${esc(e.by)}</td><td><button class="ghost" data-del="${esc(e.id)}">حذف</button></td></tr>`).join(''):'<tr><td colspan="7" class="empty">لا توجد سجلات بعد.</td></tr>';
   drawChart()}
+$('#cycX').addEventListener('click',()=>{const R=cycRows(),td=(v,b)=>`<td style="border:1px solid #000;text-align:center;${b?'font-weight:bold;background:#E8EAF6':''}">${esc(v)}</td>`;
+  const html='<html><head><meta charset="utf-8"></head><body><h3>سجل الدورات</h3><table style="border-collapse:collapse;font-family:Arial"><tr>'+CYC_HEAD.map(x=>td(x,1)).join('')+'</tr>'+R.map(r=>'<tr>'+r.map(v=>td(v)).join('')+'</tr>').join('')+'</table></body></html>';
+  save(new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel'}),`سجل-الدورات-${today()}.xls`);$('#cycM').className='msg ok';$('#cycM').textContent='تم تنزيل الملف.'});
 $('#flt').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(b){filter=b.dataset.f;renderDash()}});
 $('#all').addEventListener('click',async e=>{const b=e.target.closest('[data-del]');if(!b)return;
   if(b.dataset.c!=='1'){b.dataset.c='1';b.textContent='تأكيد الحذف';b.classList.add('red');return}
@@ -467,10 +481,10 @@ new ResizeObserver(drawChart).observe(s);
 $('#iD').value=today();
 const PREV_INV=[["f2", "2026-11-04", "552207", 24.65, 0.0, 0.0], ["f2", "2026-11-05", "552234", 25.48, 0.0, 0.0], ["f2", "2026-11-07", "", 24.06, 0.0, 0.0], ["f2", "2026-11-09", "552414", 19.8, 0.0, 0.0], ["f3", "2026-11-06", "552238", 25.18, 0.0, 0.0], ["f3", "2026-11-07", "", 23.25, 0.0, 0.0], ["f3", "2026-11-10", "552503", 24.52, 0.0, 0.0], ["f1", "2026-10-31", "551970", 24.97, 0.0, 0.0], ["f1", "2026-11-01", "552032", 24.71, 0.0, 0.0], ["f1", "2026-11-03", "552127", 25.45, 0.0, 0.0], ["f1", "2026-11-04", "552206", 25.91, 0.0, 0.0], ["f1", "2026-11-06", "552273", 24.84, 0.0, 0.0], ["f1", "2026-11-07", "552349", 24.84, 0.0, 0.0], ["f1", "2026-11-08", "552370", 0.0, 24.91, 0.0], ["f1", "2026-11-08", "552372", 0.0, 25.35, 0.0], ["f1", "2026-11-10", "552473", 0.0, 24.39, 0.0], ["f1", "2026-11-11", "552535", 0.0, 25.91, 0.0], ["f1", "2026-11-12", "552616", 0.0, 25.32, 0.0], ["f1", "2026-11-13", "552641", 0.0, 25.49, 0.0], ["f1", "2026-11-14", "552687", 0, 25.21, 0], ["f1", "2026-11-15", "552727", 0, 25.2, 0], ["f1", "2026-11-16", "552794", 0, 25.6, 0], ["f1", "2026-11-17", "552882", 0, 23.84, 0], ["f1", "2026-11-18", "552883", 0, 24.66, 0], ["f1", "2026-11-18", "552925", 0, 24.84, 0]];
 $('#invImp').addEventListener('click',async()=>{const m=$('#iMsg');m.className='msg';m.textContent='جارٍ إدخال الفواتير…';let n=0;
-  try{for(const [farm,date,no,t1,t2,t3] of PREV_INV){await setDoc(doc(db,'invoices',farm+'_'+(no||date.replace(/-/g,''))),{farm,date,no,t1,t2,t3,by:auth.currentUser.email,at:new Date().toISOString()});n++}
+  try{for(const [farm,date,no,t1,t2,t3] of PREV_INV){await setDoc(doc(db,'invoices',farm+'_'+(no||date.replace(/-/g,''))),{farm,cycle:BASE_CYC[farm],date,no,t1,t2,t3,by:auth.currentUser.email,at:new Date().toISOString()});n++}
     m.className='msg ok';m.textContent=`تم إدخال ${n} فاتورة من ملفك (رابغ وقديد وخليص).`}catch(x){m.className='msg bad';m.textContent=x.code==='permission-denied'?'لا توجد صلاحية — حدّث قواعد Firestore.':'تعذّر: '+x.message}});
 const r2=x=>Math.round(num(x)*100)/100;
-function invList(id){return invoices.filter(x=>x.farm===id&&!x.kind).sort((a,b)=>a.date.localeCompare(b.date)||String(a.no).localeCompare(String(b.no)))}
+function invList(id,c){c=c||cyc(id);return invoices.filter(x=>x.farm===id&&!x.kind&&(+x.cycle||BASE_CYC[id])===c).sort((a,b)=>a.date.localeCompare(b.date)||String(a.no).localeCompare(String(b.no)))}
 function renderInv(){
   $('#invPick').innerHTML=IDS.map(id=>`<button type="button" data-id="${id}" style="--c:${col(id)}" class="${id===invFarm?'on':''}">${esc(nm(id))}</button>`).join('');
   $('#invT').textContent='فواتير علف '+nm(invFarm);
@@ -483,7 +497,7 @@ $('#invF').addEventListener('submit',async e=>{e.preventDefault();const m=$('#iM
   const t1=r2($('#i1').value),t2=r2($('#i2').value),t3=r2($('#i3').value);
   if(!date||!(t1+t2+t3)){m.className='msg bad';m.textContent='أدخل التاريخ وكمية العلف.';return}
   m.className='msg';m.textContent='جارٍ الحفظ…';
-  try{await setDoc(doc(db,'invoices',invFarm+'_'+Date.now()),{farm:invFarm,date,no:$('#iNo').value.trim().slice(0,30),t1,t2,t3,by:auth.currentUser.email,at:new Date().toISOString()});
+  try{await setDoc(doc(db,'invoices',invFarm+'_'+Date.now()),{farm:invFarm,cycle:cyc(invFarm),date,no:$('#iNo').value.trim().slice(0,30),t1,t2,t3,by:auth.currentUser.email,at:new Date().toISOString()});
     m.className='msg ok';m.textContent='تمت إضافة الفاتورة.';['#iNo','#i1','#i2','#i3'].forEach(s=>$(s).value='')}
   catch(x){m.className='msg bad';m.textContent=x.code==='permission-denied'?'لا توجد صلاحية — حدّث قواعد Firestore.':'تعذّر الحفظ: '+x.message}});
 $('#invTable').addEventListener('click',async e=>{const b=e.target.closest('[data-idel]');if(!b)return;
@@ -495,7 +509,7 @@ $('#invX').addEventListener('click',()=>downloadXlsx([invFarm],today(),$('#iMsg'
 const AGES=[7,14,21,28],SAMPLE=240;
 const wCfg=a=>a===7?{per:10,cells:24}:{per:5,cells:48};
 let wAge=7;
-const wDoc=(id,a)=>invoices.find(x=>x.kind==='w'&&x.farm===id&&x.age===a);
+const wDoc=(id,a,c)=>{c=c||cyc(id);return invoices.find(x=>x.kind==='w'&&x.farm===id&&x.age===a&&(+x.cycle||BASE_CYC[id])===c)};
 const wStats=d=>{if(!d)return null;const c=(d.cells||[]).map(num),sum=c.reduce((a,b)=>a+b,0),filled=(d.cells||[]).filter(v=>v!==''&&v!=null).length,cf=wCfg(d.age),per=+d.per||cf.per,n=+d.n||(d.cells||[]).length||cf.cells;
   const birds=filled*per,avg=birds?sum/birds:0,g=d.unit==='kg'?avg*1000:avg;return{sum,filled,cells:n,per,birds,avg,g,unit:d.unit||'g'}};
 const fmtW=(v,u)=>u==='kg'?fmt(v,3)+' كجم':fmt(v,1)+' جم';
@@ -516,7 +530,7 @@ $('#wMore').addEventListener('click',()=>{const v=readW();$('#wN').value=v.lengt
 $('#wF').addEventListener('submit',async e=>{e.preventDefault();const m=$('#wMsg');const cells=readW();
   if(!cells.some(v=>v!=='')){m.className='msg bad';m.textContent='اكتب أوزان الخانات أولاً.';return}
   m.className='msg';m.textContent='جارٍ الحفظ…';
-  try{await setDoc(doc(db,'invoices','w_'+cur+'_'+wAge),{kind:'w',farm:cur,age:wAge,date:$('#wD').value||today(),unit:$('#wU').value,n:cells.length,per:Math.round(num($('#wP').value))||wCfg(wAge).per,cells,by:auth.currentUser.email,at:new Date().toISOString()});
+  try{await setDoc(doc(db,'invoices',cyc(cur)===BASE_CYC[cur]?'w_'+cur+'_'+wAge:'w_'+cur+'_c'+cyc(cur)+'_'+wAge),{kind:'w',cycle:cyc(cur),farm:cur,age:wAge,date:$('#wD').value||today(),unit:$('#wU').value,n:cells.length,per:Math.round(num($('#wP').value))||wCfg(wAge).per,cells,by:auth.currentUser.email,at:new Date().toISOString()});
     const s=wStats({age:wAge,cells,unit:$('#wU').value,per:num($('#wP').value)});m.className='msg ok';m.textContent=`تم حفظ وزن عمر ${wAge} لـ${nm(cur)}: المتوسط ${fmtW(s.avg,s.unit)}.`}
   catch(x){m.className='msg bad';m.textContent=x.code==='permission-denied'?'لا توجد صلاحية — حدّث قواعد Firestore (القواعد اللي آخرها invoices).':'تعذّر الحفظ: '+x.message}});
 function renderWTable(){const ids=admin?IDS:[cur];
@@ -545,6 +559,12 @@ $('#wX').addEventListener('click',async()=>{const m=$('#wMsg'),ids=admin?IDS:[cu
 function renderSettings(){if(!admin)return;
   $('#sf').innerHTML=IDS.map(id=>{const f=farms[id],sl=shedList(id);
     return `<fieldset data-id="${id}" style="border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;border-inline-start:5px solid var(--${id})"><legend style="padding:0 6px;font-weight:700">${esc(nm(id))}</legend>
+    <div class="card" style="background:var(--bg);display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px"><div><b>الدورة رقم ${cyc(id)}</b><div class="note">${farmStart(id)?(today()>=farmStart(id)?'بدأت '+dshort(farmStart(id))+' · اليوم '+(dayDiff(today(),farmStart(id))+1):'تبدأ '+dshort(farmStart(id))):'حدّد تاريخ الاستلام'}</div></div>
+      <button type="button" class="ghost nc-open">بدء دورة جديدة</button></div>
+    <div class="nc hide card" style="border-color:var(--red);display:grid;gap:10px;padding:12px"><b>بدء الدورة رقم ${cyc(id)+1}</b>
+      <div class="note">بيتحفظ ملخص الدورة ${cyc(id)} (النفوق والعلف والأوزان) في «سجل الدورات»، وتتصفّر الأرصدة للدورة الجديدة. السجلات القديمة ما تنحذف.</div>
+      <div class="two"><label>تاريخ استلام الدورة الجديدة<input type="date" class="nc-d" value="${today()}"></label><label>الطيور المستلمة (الإجمالي)<input type="number" min="0" class="nc-b"></label></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn nc-go" style="background:var(--red)">تأكيد بدء الدورة الجديدة</button><button type="button" class="ghost nc-x">إلغاء</button></div><div class="msg nc-m"></div></div>
     <div class="two"><label>اسم المزرعة<input class="s-name" value="${esc(f.name)}" maxlength="40"></label><label>عدد العنابر<input type="number" min="1" max="50" class="s-count" value="${sl.length}"></label></div>
     <div class="two"><label>الطيور المستلمة (الإجمالي)<input type="number" min="0" class="s-rec" value="${+f.birds||''}"></label><label>بداية التسجيل في البرنامج<input type="date" class="s-open" value="${esc(f.openDate||'')}"></label></div>
     <label style="max-width:240px">وحدة علف العنابر<input class="s-unit" value="${esc(f.unit||'كيس')}" maxlength="10"></label>
@@ -555,7 +575,23 @@ function renderSettings(){if(!admin)return;
 function readSettings(){const out={};$('#sf').querySelectorAll('fieldset').forEach(fs=>{const id=fs.dataset.id;
   const sheds=[...fs.querySelectorAll('tbody tr')].map(tr=>({birds:Math.max(0,Math.round(num(tr.querySelector('.s-b').value))),feed0:Math.max(0,r2(tr.querySelector('.s-f').value)),start:tr.querySelector('.s-d').value||''}));
   const st=sheds.map(x=>x.start).filter(Boolean).sort()[0]||farms[id].start||'';
-  out[id]={name:fs.querySelector('.s-name').value.trim()||DEF[id].name,birds:Math.max(0,Math.round(num(fs.querySelector('.s-rec').value))),start:st,openDate:fs.querySelector('.s-open').value||'',unit:fs.querySelector('.s-unit').value.trim()||'كيس',shedCount:Math.max(1,Math.min(50,Math.round(num(fs.querySelector('.s-count').value)||10))),sheds}});return out}
+  out[id]={cycle:cyc(id),cycleStart:cycStart(id),history:farms[id].history||[],name:fs.querySelector('.s-name').value.trim()||DEF[id].name,birds:Math.max(0,Math.round(num(fs.querySelector('.s-rec').value))),start:st,openDate:fs.querySelector('.s-open').value||'',unit:fs.querySelector('.s-unit').value.trim()||'كيس',shedCount:Math.max(1,Math.min(50,Math.round(num(fs.querySelector('.s-count').value)||10))),sheds}});return out}
+function cycleSummary(id){const s=stats(id),c=cyc(id),inv=invList(id,c),T=[0,0,0];inv.forEach(x=>{T[0]+=num(x.t1);T[1]+=num(x.t2);T[2]+=num(x.t3)});
+  const st=farmStart(id),ents=entries.filter(e=>e.farm===id&&inCycle(id,e.date)&&(!st||e.date>=st)),last=ents.map(e=>e.date).sort().pop()||today();
+  return{cycle:c,start:st,end:last,days:st&&last>=st?dayDiff(last,st)+1:null,received:s.birds,mort:s.mort,alive:s.alive,pct:s.pct,feedT:Math.round((T[0]+T[1]+T[2])*100)/100,feedBags:Math.round(s.feed*100)/100,
+    w:Object.fromEntries(AGES.map(a=>{const w=wStats(wDoc(id,a,c));return[a,w&&w.sum?Math.round(w.g*10)/10:null]}))}}
+$('#sf').addEventListener('click',async e=>{const fs=e.target.closest('fieldset');if(!fs)return;const id=fs.dataset.id,box=fs.querySelector('.nc');
+  if(e.target.closest('.nc-open')){box.classList.remove('hide');return}
+  if(e.target.closest('.nc-x')){box.classList.add('hide');return}
+  if(!e.target.closest('.nc-go'))return;
+  const m=fs.querySelector('.nc-m'),d=fs.querySelector('.nc-d').value,b=Math.round(num(fs.querySelector('.nc-b').value));
+  if(!d){m.className='msg nc-m bad';m.textContent='اختر تاريخ الاستلام.';return}
+  const sum=cycleSummary(id),out=readSettings(),n=shedList(id).length,newNo=cyc(id)+1;
+  out[id]={...out[id],cycle:newNo,cycleStart:d,history:[...(farms[id].history||[]),sum],birds:b,start:d,openDate:d,
+    sheds:[...Array(n)].map(()=>({birds:0,feed0:0,start:d}))};
+  m.className='msg nc-m';m.textContent='جارٍ بدء الدورة…';
+  try{await setDoc(doc(db,'settings','farms'),out);IDS.forEach(i=>farms[i]={...farms[i],...out[i]});document.activeElement?.blur();renderSettings();const sm=$('#smsg');sm.className='msg ok';sm.textContent=`بدأت الدورة رقم ${newNo} لـ${nm(id)}. اكتب الآن طيور كل عنبر في جدول العنابر واضغط حفظ الإعدادات.`}
+  catch(x){m.className='msg nc-m bad';m.textContent='تعذّر الحفظ.'}});
 $('#sf').addEventListener('change',e=>{if(!e.target.classList.contains('s-count'))return;const tmp=readSettings();IDS.forEach(i=>farms[i]={...farms[i],...tmp[i]});renderSettings()});
 $('#sf').addEventListener('input',e=>{const fs=e.target.closest('fieldset');if(!fs||e.target.classList.contains('s-count'))return;
   fs.querySelector('.s-sum').textContent=fmt([...fs.querySelectorAll('.s-b')].reduce((a,x)=>a+num(x.value),0))});
