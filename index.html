@@ -82,6 +82,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}input[type=num
     <a href="#feed" data-v="feed">فواتير العلف</a>
     <a href="#weights" data-v="weights">الأوزان</a>
     <a href="#meds" data-v="meds">الدواء</a>
+    <a href="#notes" data-v="notes">الأوامر</a>
     <a href="#dash" data-v="dash" class="adm">المتابعة</a>
     <a href="#settings" data-v="settings" class="adm">الإعدادات</a>
   </nav>
@@ -152,6 +153,20 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}input[type=num
       </form>
       <h2 id="mTitle">برنامج الدواء اليومي</h2>
       <div class="card scroll"><table class="sheds" id="mTable" style="font-size:14px"></table></div>
+    </section>
+
+    <section class="view" id="v-notes">
+      <form class="card" id="nF" style="display:grid;gap:14px">
+        <div id="pickWrap5"><div class="note" style="margin-bottom:6px">المزرعة</div><div class="farms" id="pick5"></div>
+          <label class="adm" style="flex-direction:row;display:flex;align-items:center;gap:8px;margin-top:8px"><input type="checkbox" id="nAll" style="width:20px;min-height:20px"> إرسال للمزارع الثلاث</label></div>
+        <div class="two"><label>التاريخ<input type="date" id="nD"></label><label>النوع<select id="nK"><option value="order">أمر</option><option value="note">ملاحظة</option></select></label></div>
+        <label>نص الأمر أو الملاحظة<textarea id="nT" rows="5" maxlength="2000" placeholder="مثال: تنظيف خزانات المياه في عنابر 1-5 قبل الظهر" style="min-height:130px;resize:vertical;line-height:1.7"></textarea></label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" type="submit">إضافة</button><button class="ghost" type="button" id="nX">تنزيل الأوامر Excel</button></div>
+        <div class="msg" id="nMsg"></div>
+      </form>
+      <h2 id="nTitle">الأوامر والملاحظات</h2>
+      <div class="tabs" id="nFlt" style="margin-bottom:8px"><button class="ghost on" type="button" data-nf="open">لم تُنفّذ</button><button class="ghost" type="button" data-nf="all">الكل</button></div>
+      <div class="card scroll"><table class="sheds" id="nTable" style="font-size:14px"></table></div>
     </section>
 
     <section class="view" id="v-dash">
@@ -299,7 +314,7 @@ onAuthStateChanged(auth,u=>{unsubs.forEach(f=>f());unsubs=[];entries=[];invoices
   $('#conn').textContent='';
   $('#login').classList.add('hide');$('#app').classList.remove('hide');$('#nav').classList.remove('hide');
   document.querySelectorAll('.adm').forEach(a=>a.classList.toggle('hide',!admin));
-  $('#pickWrap').classList.toggle('hide',!admin);$('#pickWrap2').classList.toggle('hide',!admin);$('#pickWrap3').classList.toggle('hide',!admin);$('#pickWrap4').classList.toggle('hide',!admin);
+  $('#pickWrap').classList.toggle('hide',!admin);$('#pickWrap2').classList.toggle('hide',!admin);$('#pickWrap3').classList.toggle('hide',!admin);$('#pickWrap4').classList.toggle('hide',!admin);$('#pick5').classList.toggle('hide',!admin);
   cur=myFarm||cur;invFarm=myFarm||invFarm;$('#invPickWrap').classList.toggle('hide',!admin);
   $('#whoami').textContent=(admin?'المدير':nm(myFarm))+' · '+u.email;
   all();renderShedForm();renderFeedForm();start();show();});
@@ -310,7 +325,7 @@ function start(){
     $('#whoami').textContent=(admin?'المدير':nm(myFarm))+' · '+(auth.currentUser?.email||'');
     all();if(!document.activeElement?.closest('#f'))renderShedForm();if(!document.activeElement?.closest('#f2'))renderFeedForm()},()=>{}));
   const iq=admin?collection(db,'invoices'):query(collection(db,'invoices'),where('farm','==',myFarm));
-  unsubs.push(onSnapshot(iq,sn=>{invoices=sn.docs.map(x=>({id:x.id,...x.data()}));renderInv();if(!document.activeElement?.closest('#wF'))renderWeights();else renderWTable();if(!document.activeElement?.closest('#mF'))renderMeds();else renderMedTable()},e=>{$('#invTable').innerHTML=`<tr><td class="empty">${e.code==='permission-denied'?'لا توجد صلاحية لفواتير العلف — حدّث قواعد Firestore.':esc(e.message)}</td></tr>`}));
+  unsubs.push(onSnapshot(iq,sn=>{invoices=sn.docs.map(x=>({id:x.id,...x.data()}));renderInv();if(!document.activeElement?.closest('#wF'))renderWeights();else renderWTable();if(!document.activeElement?.closest('#mF'))renderMeds();else renderMedTable();renderNotes()},e=>{$('#invTable').innerHTML=`<tr><td class="empty">${e.code==='permission-denied'?'لا توجد صلاحية لفواتير العلف — حدّث قواعد Firestore.':esc(e.message)}</td></tr>`}));
   const q=admin?collection(db,'entries'):query(collection(db,'entries'),where('farm','==',myFarm));
   unsubs.push(onSnapshot(q,{includeMetadataChanges:true},sn=>{
     entries=sn.docs.map(x=>({id:x.id,pending:x.metadata.hasPendingWrites,...x.data()}));
@@ -320,16 +335,16 @@ function start(){
 }
 
 /* ---------- views ---------- */
-function show(){let v=location.hash.slice(1);if(!['entry','sfeed','dash','settings','feed','weights','meds'].includes(v)||(!admin&&!['entry','sfeed','feed','weights','meds'].includes(v)))v=admin?'dash':'entry';
+function show(){let v=location.hash.slice(1);if(!['entry','sfeed','dash','settings','feed','weights','meds','notes'].includes(v)||(!admin&&!['entry','sfeed','feed','weights','meds','notes'].includes(v)))v=admin?'dash':'entry';
   document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
   document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.dataset.v===v));if(v==='dash')drawChart()}
 addEventListener('hashchange',show);
 
 /* ---------- entry (per shed) ---------- */
 $('#d').value=today();$('#d').max=addDays(today(),1);$('#d2').value=today();$('#d2').max=addDays(today(),1);$('#xd').value=today();$('#xd').max=today();
-function renderPick(){$('#pick4').innerHTML=$('#pick3').innerHTML=$('#pick2').innerHTML=$('#pick').innerHTML=IDS.map(id=>`<button type="button" data-id="${id}" style="--c:${col(id)}" class="${id===cur?'on':''}">${esc(nm(id))}</button>`).join('');
+function renderPick(){$('#pick5').innerHTML=$('#pick4').innerHTML=$('#pick3').innerHTML=$('#pick2').innerHTML=$('#pick').innerHTML=IDS.map(id=>`<button type="button" data-id="${id}" style="--c:${col(id)}" class="${id===cur?'on':''}">${esc(nm(id))}</button>`).join('');
   $('#lastT').textContent='آخر 7 أيام — '+nm(cur)}
-['#pick','#pick2','#pick3','#pick4'].forEach(s=>$(s).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cur=b.dataset.id;renderPick();renderWeights();renderMeds();renderShedForm();renderFeedForm();renderLast()}));
+['#pick','#pick2','#pick3','#pick4','#pick5'].forEach(s=>$(s).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cur=b.dataset.id;renderPick();renderWeights();renderMeds();renderNotes();renderShedForm();renderFeedForm();renderLast()}));
 $('#d').addEventListener('change',renderShedForm);$('#d2').addEventListener('change',renderFeedForm);
 function renderShedForm(){const date=$('#d').value||today(),rows=shedRows(cur,date),e=entryOf(cur,date);
   const v=x=>x==null?'':x;
@@ -590,6 +605,30 @@ $('#mX').addEventListener('click',()=>{const ids=admin?IDS:[cur],td=(v,b,w)=>`<t
   const html='<html><head><meta charset="utf-8"></head><body dir="rtl">'+ids.map(id=>`<h3 style="text-align:center">برنامج الدواء اليومي — ${esc(nm(id))} (الدورة ${cyc(id)})</h3><table style="border-collapse:collapse;font-family:Arial"><tr>${td('التاريخ',1,'90px')}${td('العمر',1,'50px')}${td('بيان الدواء',1,'500px')}</tr>`+
     medList(id).map(x=>`<tr>${td(x.date.slice(8,10)+'/'+x.date.slice(5,7)+'/'+x.date.slice(0,4))}${td(ageOn(id,x.date))}${td(x.text)}</tr>`).join('')+'</table><br>').join('')+'</body></html>';
   save(new Blob(['﻿'+html],{type:'application/vnd.ms-excel'}),`برنامج-الدواء-${today()}.xls`);$('#mMsg').className='msg ok';$('#mMsg').textContent='تم تنزيل الملف.'});
+
+/* ---------- orders & notes ---------- */
+$('#nD').value=today();let nFilter='open';
+const noteList=id=>invoices.filter(x=>x.kind==='note'&&x.farm===id).sort((a,b)=>b.date.localeCompare(a.date)||String(b.at).localeCompare(String(a.at)));
+function renderNotes(){if(!$('#nTable'))return;$('#nTitle').textContent='الأوامر والملاحظات — '+nm(cur);
+  const L=noteList(cur).filter(x=>nFilter==='all'||!x.done);
+  $('#nTable').innerHTML=`<thead><tr><th style="width:70px">التاريخ</th><th style="width:50px">النوع</th><th>النص</th><th style="width:56px">التنفيذ</th>${admin?'<th style="width:36px"></th>':''}</tr></thead><tbody>`+
+   (L.length?L.map(x=>`<tr style="${x.done?'opacity:.6':''}"><td class="c">${dshort(x.date)}</td><td class="c"><b style="color:${x.type==='order'?'var(--red)':'var(--green)'}">${x.type==='order'?'أمر':'ملاحظة'}</b></td><td style="white-space:pre-wrap;text-align:start;padding:8px">${esc(x.text)}<div class="note" style="font-size:11px" dir="ltr">${esc(x.by||'')}${x.done?' · ✓ '+esc(x.doneBy||''):''}</div></td>
+     <td class="c"><label style="display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px"><input type="checkbox" data-ndone="${esc(x.id)}" ${x.done?'checked':''} style="width:22px;min-height:22px">${x.done?'تم':'لم يتم'}</label></td>${admin?`<td><button class="ghost" type="button" data-ndel="${esc(x.id)}" title="حذف" style="min-height:34px;padding:0 8px">✕</button></td>`:''}</tr>`).join(''):`<tr><td colspan="${admin?5:4}" class="empty">${nFilter==='open'?'لا توجد أوامر غير منفّذة':'لا توجد أوامر بعد'}</td></tr>`)+'</tbody>'}
+$('#nFlt').addEventListener('click',e=>{const b=e.target.closest('[data-nf]');if(!b)return;nFilter=b.dataset.nf;b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderNotes()});
+$('#nF').addEventListener('submit',async e=>{e.preventDefault();const m=$('#nMsg'),date=$('#nD').value||today(),text=$('#nT').value.trim();
+  if(!text){m.className='msg bad';m.textContent='اكتب نص الأمر أو الملاحظة.';return}
+  const ids=admin&&$('#nAll').checked?IDS:[cur];m.className='msg';m.textContent='جارٍ الحفظ…';
+  try{for(const id of ids)await setDoc(doc(db,'invoices','note_'+id+'_'+Date.now()),{kind:'note',type:$('#nK').value,farm:id,cycle:cyc(id),date,text:text.slice(0,2000),done:false,by:auth.currentUser.email,at:new Date().toISOString()});
+    $('#nT').value='';m.className='msg ok';m.textContent=ids.length>1?'تمت الإضافة للمزارع الثلاث.':'تمت الإضافة لـ'+nm(cur)+'.'}
+  catch(x){m.className='msg bad';m.textContent=x.code==='permission-denied'?'لا توجد صلاحية — حدّث قواعد Firestore (القواعد اللي آخرها invoices).':'تعذّر الحفظ: '+x.message}});
+$('#nTable').addEventListener('change',async e=>{const c=e.target.closest('[data-ndone]');if(!c)return;const x=invoices.find(i=>i.id===c.dataset.ndone);if(!x)return;
+  try{const {id,...rest}=x;await setDoc(doc(db,'invoices',id),{...rest,done:c.checked,doneBy:c.checked?auth.currentUser.email:'',doneAt:c.checked?new Date().toISOString():''})}catch(err){c.checked=!c.checked;$('#nMsg').className='msg bad';$('#nMsg').textContent='تعذّر التحديث.'}});
+$('#nTable').addEventListener('click',async e=>{const b=e.target.closest('[data-ndel]');if(!b)return;if(b.dataset.c!=='1'){b.dataset.c='1';b.textContent='حذف؟';b.classList.add('red');return}
+  b.disabled=true;try{await deleteDoc(doc(db,'invoices',b.dataset.ndel))}catch(x){b.disabled=false;b.textContent='تعذّر'}});
+$('#nX').addEventListener('click',()=>{const ids=admin?IDS:[cur],td=(v,b)=>`<td style="border:1px solid #000;vertical-align:top;${b?'font-weight:bold;background:#E8EAF6;text-align:center':'white-space:pre-wrap'}">${esc(v).replace(/\n/g,'<br>')}</td>`;
+  const html='<html><head><meta charset="utf-8"></head><body dir="rtl">'+ids.map(id=>`<h3 style="text-align:center">الأوامر والملاحظات — ${esc(nm(id))}</h3><table style="border-collapse:collapse;font-family:Arial"><tr>${['التاريخ','النوع','النص','التنفيذ','كتبه'].map(t=>td(t,1)).join('')}</tr>`+
+    noteList(id).map(x=>`<tr>${td(x.date.slice(8,10)+'/'+x.date.slice(5,7)+'/'+x.date.slice(0,4))}${td(x.type==='order'?'أمر':'ملاحظة')}${td(x.text)}${td(x.done?'تم':'لم يتم')}${td(x.by||'')}</tr>`).join('')+'</table><br>').join('')+'</body></html>';
+  save(new Blob(['﻿'+html],{type:'application/vnd.ms-excel'}),`الأوامر-${today()}.xls`);$('#nMsg').className='msg ok';$('#nMsg').textContent='تم تنزيل الملف.'});
 
 /* ---------- settings ---------- */
 function renderSettings(){if(!admin)return;
