@@ -20,7 +20,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "IBM Plex San
 header{background:var(--head);color:#fff;padding:20px max(5vw,16px) 0}
 header h1{margin:0;font-size:clamp(24px,4vw,34px);line-height:1.1;font-weight:700}
 header p{margin:4px 0 14px;opacity:.8;font-size:14px}
-nav{display:flex;gap:4px;overflow-x:auto}
+nav{display:flex;gap:4px;flex-wrap:wrap;padding-bottom:6px}nav a{border-radius:10px!important;padding:9px 12px!important}
 nav a{flex:none;color:#fff;text-decoration:none;padding:12px 16px;border-radius:10px 10px 0 0;opacity:.8;font-weight:500}
 nav a.on{background:var(--bg);color:var(--ink);opacity:1}
 main{max-width:1100px;margin:0 auto;padding:24px max(4vw,14px) 48px}
@@ -81,6 +81,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}input[type=num
     <a href="#sfeed" data-v="sfeed">علف العنابر</a>
     <a href="#feed" data-v="feed">فواتير العلف</a>
     <a href="#weights" data-v="weights">الأوزان</a>
+    <a href="#meds" data-v="meds">الدواء</a>
     <a href="#dash" data-v="dash" class="adm">المتابعة</a>
     <a href="#settings" data-v="settings" class="adm">الإعدادات</a>
   </nav>
@@ -139,6 +140,18 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}input[type=num
       </form>
       <h2>متوسط الوزن في كل فترة</h2>
       <div class="card scroll"><table class="sheds" id="wTable"></table></div>
+    </section>
+
+    <section class="view" id="v-meds">
+      <form class="card" id="mF" style="display:grid;gap:14px">
+        <div id="pickWrap4"><div class="note" style="margin-bottom:6px">المزرعة</div><div class="farms" id="pick4"></div></div>
+        <label style="max-width:260px">التاريخ<input type="date" id="mD"></label>
+        <label>بيان الدواء<textarea id="mT" rows="8" maxlength="3000" placeholder="اكتب الدواء والجرعة والعنابر وطريقة الإعطاء…" style="min-height:200px;resize:vertical;line-height:1.7"></textarea></label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="mSave" type="submit">حفظ الدواء</button><button class="ghost" type="button" id="mX">تنزيل برنامج الدواء Excel</button></div>
+        <div class="msg" id="mMsg"></div>
+      </form>
+      <h2 id="mTitle">برنامج الدواء اليومي</h2>
+      <div class="card scroll"><table class="sheds" id="mTable" style="font-size:14px"></table></div>
     </section>
 
     <section class="view" id="v-dash">
@@ -286,7 +299,7 @@ onAuthStateChanged(auth,u=>{unsubs.forEach(f=>f());unsubs=[];entries=[];invoices
   $('#conn').textContent='';
   $('#login').classList.add('hide');$('#app').classList.remove('hide');$('#nav').classList.remove('hide');
   document.querySelectorAll('.adm').forEach(a=>a.classList.toggle('hide',!admin));
-  $('#pickWrap').classList.toggle('hide',!admin);$('#pickWrap2').classList.toggle('hide',!admin);$('#pickWrap3').classList.toggle('hide',!admin);
+  $('#pickWrap').classList.toggle('hide',!admin);$('#pickWrap2').classList.toggle('hide',!admin);$('#pickWrap3').classList.toggle('hide',!admin);$('#pickWrap4').classList.toggle('hide',!admin);
   cur=myFarm||cur;invFarm=myFarm||invFarm;$('#invPickWrap').classList.toggle('hide',!admin);
   $('#whoami').textContent=(admin?'المدير':nm(myFarm))+' · '+u.email;
   all();renderShedForm();renderFeedForm();start();show();});
@@ -297,7 +310,7 @@ function start(){
     $('#whoami').textContent=(admin?'المدير':nm(myFarm))+' · '+(auth.currentUser?.email||'');
     all();if(!document.activeElement?.closest('#f'))renderShedForm();if(!document.activeElement?.closest('#f2'))renderFeedForm()},()=>{}));
   const iq=admin?collection(db,'invoices'):query(collection(db,'invoices'),where('farm','==',myFarm));
-  unsubs.push(onSnapshot(iq,sn=>{invoices=sn.docs.map(x=>({id:x.id,...x.data()}));renderInv();if(!document.activeElement?.closest('#wF'))renderWeights();else renderWTable()},e=>{$('#invTable').innerHTML=`<tr><td class="empty">${e.code==='permission-denied'?'لا توجد صلاحية لفواتير العلف — حدّث قواعد Firestore.':esc(e.message)}</td></tr>`}));
+  unsubs.push(onSnapshot(iq,sn=>{invoices=sn.docs.map(x=>({id:x.id,...x.data()}));renderInv();if(!document.activeElement?.closest('#wF'))renderWeights();else renderWTable();if(!document.activeElement?.closest('#mF'))renderMeds();else renderMedTable()},e=>{$('#invTable').innerHTML=`<tr><td class="empty">${e.code==='permission-denied'?'لا توجد صلاحية لفواتير العلف — حدّث قواعد Firestore.':esc(e.message)}</td></tr>`}));
   const q=admin?collection(db,'entries'):query(collection(db,'entries'),where('farm','==',myFarm));
   unsubs.push(onSnapshot(q,{includeMetadataChanges:true},sn=>{
     entries=sn.docs.map(x=>({id:x.id,pending:x.metadata.hasPendingWrites,...x.data()}));
@@ -307,16 +320,16 @@ function start(){
 }
 
 /* ---------- views ---------- */
-function show(){let v=location.hash.slice(1);if(!['entry','sfeed','dash','settings','feed','weights'].includes(v)||(!admin&&!['entry','sfeed','feed','weights'].includes(v)))v=admin?'dash':'entry';
+function show(){let v=location.hash.slice(1);if(!['entry','sfeed','dash','settings','feed','weights','meds'].includes(v)||(!admin&&!['entry','sfeed','feed','weights','meds'].includes(v)))v=admin?'dash':'entry';
   document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
   document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.dataset.v===v));if(v==='dash')drawChart()}
 addEventListener('hashchange',show);
 
 /* ---------- entry (per shed) ---------- */
 $('#d').value=today();$('#d').max=addDays(today(),1);$('#d2').value=today();$('#d2').max=addDays(today(),1);$('#xd').value=today();$('#xd').max=today();
-function renderPick(){$('#pick3').innerHTML=$('#pick2').innerHTML=$('#pick').innerHTML=IDS.map(id=>`<button type="button" data-id="${id}" style="--c:${col(id)}" class="${id===cur?'on':''}">${esc(nm(id))}</button>`).join('');
+function renderPick(){$('#pick4').innerHTML=$('#pick3').innerHTML=$('#pick2').innerHTML=$('#pick').innerHTML=IDS.map(id=>`<button type="button" data-id="${id}" style="--c:${col(id)}" class="${id===cur?'on':''}">${esc(nm(id))}</button>`).join('');
   $('#lastT').textContent='آخر 7 أيام — '+nm(cur)}
-['#pick','#pick2','#pick3'].forEach(s=>$(s).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cur=b.dataset.id;renderPick();renderWeights();renderShedForm();renderFeedForm();renderLast()}));
+['#pick','#pick2','#pick3','#pick4'].forEach(s=>$(s).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cur=b.dataset.id;renderPick();renderWeights();renderMeds();renderShedForm();renderFeedForm();renderLast()}));
 $('#d').addEventListener('change',renderShedForm);$('#d2').addEventListener('change',renderFeedForm);
 function renderShedForm(){const date=$('#d').value||today(),rows=shedRows(cur,date),e=entryOf(cur,date);
   const v=x=>x==null?'':x;
@@ -554,6 +567,29 @@ $('#wX').addEventListener('click',async()=>{const m=$('#wMsg'),ids=admin?IDS:[cu
       ids.map(id=>block(id).map(({a,d,s,cf})=>`<h4>${esc(nm(id))} - عمر ${a} - ${esc(d.date)}</h4><table style="border-collapse:collapse"><tr>${td('خانة',1)}${td('وزن '+cf.per+' دجاجات',1)}</tr>`+[...Array(cf.cells)].map((_,k)=>`<tr>${td(k+1)}${td(d.cells?.[k]??'')}</tr>`).join('')+`<tr>${td('المجموع',1)}${td(fmt(s.sum,3),1)}</tr><tr>${td('المتوسط ÷'+s.birds,1)}${td(fmtW(s.avg,s.unit),1)}</tr></table>`).join('')).join('')+'</body></html>';
     save(new Blob(['﻿'+html],{type:'application/vnd.ms-excel'}),`الأوزان-${today()}.xls`)}
   m.className='msg ok';m.textContent='تم تنزيل الملف.'});
+
+/* ---------- medicine ---------- */
+$('#mD').value=today();
+const medList=id=>invoices.filter(x=>x.kind==='med'&&x.farm===id&&(+x.cycle||BASE_CYC[id])===cyc(id)).sort((a,b)=>a.date.localeCompare(b.date));
+const medOf=(id,d)=>medList(id).find(x=>x.date===d);
+const ageOn=(id,d)=>{const st=farmStart(id);return st&&d>=st?dayDiff(d,st)+1:''};
+function renderMeds(){if(!$('#mT'))return;const x=medOf(cur,$('#mD').value||today());$('#mT').value=x?.text||'';renderMedTable()}
+function renderMedTable(){$('#mTitle').textContent='برنامج الدواء اليومي — '+nm(cur)+' (الدورة '+cyc(cur)+')';const L=medList(cur);
+  $('#mTable').innerHTML=`<thead><tr><th style="width:90px">التاريخ</th><th style="width:50px">العمر</th><th>بيان الدواء</th><th style="width:60px"></th></tr></thead><tbody>`+
+   (L.length?L.map(x=>`<tr><td class="c">${dshort(x.date)}</td><td class="c">${ageOn(cur,x.date)}</td><td style="white-space:pre-wrap;text-align:start;padding:8px">${esc(x.text)}</td><td><button class="ghost" type="button" data-medit="${esc(x.date)}" style="min-height:34px;padding:0 8px">تعديل</button></td></tr>`).join(''):'<tr><td colspan="4" class="empty">لا يوجد دواء مسجّل في هذه الدورة</td></tr>')+'</tbody>'}
+$('#mD').addEventListener('change',renderMeds);
+$('#mTable').addEventListener('click',e=>{const b=e.target.closest('[data-medit]');if(!b)return;$('#mD').value=b.dataset.medit;renderMeds();$('#mT').focus();scrollTo({top:0,behavior:'smooth'})});
+$('#mF').addEventListener('submit',async e=>{e.preventDefault();const m=$('#mMsg'),date=$('#mD').value,text=$('#mT').value.trim();
+  if(!date){m.className='msg bad';m.textContent='اختر التاريخ.';return}
+  m.className='msg';m.textContent='جارٍ الحفظ…';const id='med_'+cur+'_'+date.replace(/-/g,'');
+  try{if(!text){await deleteDoc(doc(db,'invoices',id));m.className='msg ok';m.textContent='تم حذف دواء هذا اليوم.';return}
+    await setDoc(doc(db,'invoices',id),{kind:'med',cycle:cyc(cur),farm:cur,date,text:text.slice(0,3000),by:auth.currentUser.email,at:new Date().toISOString()});
+    m.className='msg ok';m.textContent=`تم حفظ دواء ${nm(cur)} ليوم ${dshort(date)}.`}
+  catch(x){m.className='msg bad';m.textContent=x.code==='permission-denied'?'لا توجد صلاحية — حدّث قواعد Firestore (القواعد اللي آخرها invoices).':'تعذّر الحفظ: '+x.message}});
+$('#mX').addEventListener('click',()=>{const ids=admin?IDS:[cur],td=(v,b,w)=>`<td style="border:1px solid #000;vertical-align:top;${w?'width:'+w+';':''}${b?'font-weight:bold;background:#E8EAF6;text-align:center':'white-space:pre-wrap'}">${esc(v).replace(/\n/g,'<br>')}</td>`;
+  const html='<html><head><meta charset="utf-8"></head><body dir="rtl">'+ids.map(id=>`<h3 style="text-align:center">برنامج الدواء اليومي — ${esc(nm(id))} (الدورة ${cyc(id)})</h3><table style="border-collapse:collapse;font-family:Arial"><tr>${td('التاريخ',1,'90px')}${td('العمر',1,'50px')}${td('بيان الدواء',1,'500px')}</tr>`+
+    medList(id).map(x=>`<tr>${td(x.date.slice(8,10)+'/'+x.date.slice(5,7)+'/'+x.date.slice(0,4))}${td(ageOn(id,x.date))}${td(x.text)}</tr>`).join('')+'</table><br>').join('')+'</body></html>';
+  save(new Blob(['﻿'+html],{type:'application/vnd.ms-excel'}),`برنامج-الدواء-${today()}.xls`);$('#mMsg').className='msg ok';$('#mMsg').textContent='تم تنزيل الملف.'});
 
 /* ---------- settings ---------- */
 function renderSettings(){if(!admin)return;
