@@ -96,8 +96,8 @@ body.pm>*:not(#mPages){display:none!important}body.pm #mPages{display:block!impo
     <a href="#docs" data-v="docs">المستندات</a>
     <a href="#dash" data-v="dash" class="adm">المتابعة</a>
     <a href="#chicks" data-v="chicks" class="adm">استلام الصيصان</a>
-    <a href="#salaries" data-v="salaries" class="adm">الرواتب</a>
-    <a href="#settings" data-v="settings" class="adm">الإعدادات</a>
+    <a href="#salaries" data-v="salaries" class="adm own">الرواتب</a>
+    <a href="#settings" data-v="settings" class="adm own">الإعدادات</a>
   </nav>
 </header>
 <main>
@@ -313,6 +313,7 @@ const firebaseConfig = {
 
 
 const ADMIN_EMAILS = ["somaa0012@gmail.com"];
+const SUP_EMAILS = ["khaladspeed300@gmail.com"]; /* خلاد: كل شيء ما عدا الرواتب والإعدادات */
 
 
 const FARM_EMAILS = {
@@ -328,7 +329,7 @@ addEventListener('unhandledrejection',e=>showErr(e.reason?.message||e.reason));
 const IDS=['f1','f2','f3'];
 const DEF={f1:{name:'Khulies 5',birds:0,start:'2026-11-04',openDate:'2026-11-19',shedCount:15,sheds:[{birds:0,start:'2026-11-04',feed0:217},{birds:0,start:'2026-11-04',feed0:197},{birds:0,start:'2026-11-04',feed0:197},{birds:0,start:'2026-11-04',feed0:197},{birds:0,start:'2026-11-04',feed0:197},{birds:0,start:'2026-11-04',feed0:197},{birds:0,start:'2026-11-04',feed0:197},{birds:0,start:'2026-11-05',feed0:201},{birds:0,start:'2026-11-05',feed0:201},{birds:0,start:'2026-11-05',feed0:201},{birds:0,start:'2026-11-05',feed0:202},{birds:0,start:'2026-11-05',feed0:202},{birds:0,start:'2026-11-05',feed0:222},{birds:0,start:'2026-11-05',feed0:202},{birds:0,start:'2026-11-05',feed0:202}]},f2:{name:'Rabig 3',birds:0,start:'2026-11-07',openDate:'2026-11-19',shedCount:12,sheds:[{birds:0,start:'2026-11-07'},{birds:0,start:'2026-11-07'},{birds:0,start:'2026-11-07'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-08'}]},f3:{name:'Guided 4',birds:0,start:'2026-11-10',openDate:'2026-11-19',shedCount:10,sheds:[{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-11'},{birds:0,start:'2026-11-11'},{birds:0,start:'2026-11-11'},{birds:0,start:'2026-11-11'},{birds:0,start:'2026-11-11'}]}};
 const OLD_DATES={f1:'2026-11-03,'.repeat(7)+'2026-11-04,'.repeat(8),f2:'2026-11-06,'.repeat(3)+'2026-11-08,'.repeat(6)+'2026-11-07,'.repeat(3),f3:'2026-11-09,'.repeat(5)+'2026-11-10,'.repeat(5)};
-let invoices=[],invFarm='f1',farms=structuredClone(DEF),entries=[],admin=false,myFarm=null,cur='f1',chartKey='mortality',filter='all',unsubs=[];
+let invoices=[],invFarm='f1',farms=structuredClone(DEF),entries=[],admin=false,owner=false,myFarm=null,cur='f1',chartKey='mortality',filter='all',unsubs=[];
 
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
@@ -375,20 +376,20 @@ $('#out').addEventListener('click',()=>signOut(auth));
 
 onAuthStateChanged(auth,u=>{unsubs.forEach(f=>f());unsubs=[];entries=[];invoices=[];
   if(!u){$('#login').classList.remove('hide');$('#app').classList.add('hide');$('#nav').classList.add('hide');return}
-  admin=ADMIN_EMAILS.map(low).includes(low(u.email));myFarm=farmOfEmail(u.email);
+  owner=ADMIN_EMAILS.map(low).includes(low(u.email));admin=owner||SUP_EMAILS.map(low).includes(low(u.email));myFarm=farmOfEmail(u.email);
   if(!admin&&!myFarm){showErr('هذا الحساب غير مربوط بأي مزرعة.');signOut(auth);return}
   $('#conn').textContent='';
   $('#login').classList.add('hide');$('#app').classList.remove('hide');$('#nav').classList.remove('hide');
-  document.querySelectorAll('.adm').forEach(a=>a.classList.toggle('hide',!admin));
+  document.querySelectorAll('.adm').forEach(a=>a.classList.toggle('hide',!admin));document.querySelectorAll('.own').forEach(a=>a.classList.toggle('hide',!owner));
   $('#pickWrap').classList.toggle('hide',!admin);$('#pickWrap2').classList.toggle('hide',!admin);$('#pickWrap3').classList.toggle('hide',!admin);$('#pickWrap4').classList.toggle('hide',!admin);$('#pick5').classList.toggle('hide',!admin);$('#pickWrap6').classList.toggle('hide',!admin);
   cur=myFarm||cur;invFarm=myFarm||invFarm;$('#invPickWrap').classList.toggle('hide',!admin);
-  $('#whoami').textContent=(admin?'المدير':nm(myFarm))+' · '+u.email;
-  all();renderShedForm();renderFeedForm();start();if(admin){startSalaries();startChicks()}show();});
+  $('#whoami').textContent=(owner?'المدير':admin?'المشرف':nm(myFarm))+' · '+u.email;
+  all();renderShedForm();renderFeedForm();start();if(admin)startChicks();if(owner)startSalaries();show();});
 
 function start(){
   $('#conn').className='msg';$('#conn').textContent='جارٍ تحميل البيانات…';
   unsubs.push(onSnapshot(doc(db,'settings','farms'),sn=>{if(sn.exists()){const v=sn.data();IDS.forEach(id=>{farms[id]={...DEF[id],...(v[id]||{})};const sv=v[id]?.sheds;if(sv&&sv.map(x=>x.start+',').join('')===OLD_DATES[id])farms[id].sheds=sv.map((x,k)=>({...x,start:DEF[id].sheds[k]?.start||x.start}))})}
-    $('#whoami').textContent=(admin?'المدير':nm(myFarm))+' · '+(auth.currentUser?.email||'');
+    $('#whoami').textContent=(owner?'المدير':admin?'المشرف':nm(myFarm))+' · '+(auth.currentUser?.email||'');
     all();if(!document.activeElement?.closest('#f'))renderShedForm();if(!document.activeElement?.closest('#f2'))renderFeedForm()},()=>{}));
   const iq=admin?collection(db,'invoices'):query(collection(db,'invoices'),where('farm','==',myFarm));
   unsubs.push(onSnapshot(iq,sn=>{invoices=sn.docs.map(x=>({id:x.id,...x.data()}));renderInv();if(!document.activeElement?.closest('#wF'))renderWeights();else renderWTable();if(!document.activeElement?.closest('#mF'))renderMeds();else renderMedTable();renderNotes()},e=>{$('#invTable').innerHTML=`<tr><td class="empty">${e.code==='permission-denied'?'لا توجد صلاحية لفواتير العلف — حدّث قواعد Firestore.':esc(e.message)}</td></tr>`}));
@@ -455,7 +456,7 @@ $('#dcTable').addEventListener('click',async e=>{const b=e.target.closest('butto
   catch(err){if(w)w.close();m.className='msg bad';m.textContent='تعذّر فتح المستند: '+(err.message||err)}});
 
 /* ---------- views ---------- */
-function show(){let v=location.hash.slice(1);if(!['entry','sfeed','dash','settings','feed','weights','meds','notes','docs','salaries','chicks'].includes(v)||(!admin&&!['entry','sfeed','feed','weights','meds','notes','docs'].includes(v)))v=admin?'dash':'entry';
+function show(){let v=location.hash.slice(1);if(!['entry','sfeed','dash','settings','feed','weights','meds','notes','docs','salaries','chicks'].includes(v)||(!admin&&!['entry','sfeed','feed','weights','meds','notes','docs'].includes(v))||(!owner&&['salaries','settings'].includes(v)))v=admin?'dash':'entry';
   document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
   document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.dataset.v===v));if(v==='dash')drawChart()}
 addEventListener('hashchange',show);
@@ -542,7 +543,7 @@ function renderDash(){if(!admin)return;if(!$('#pmA').value)pmDefaults();renderCy
   $('#lg').innerHTML=IDS.map(id=>`<span style="--c:${col(id)}"><i></i>${esc(nm(id))}</span>`).join('');
   $('#flt').innerHTML=[['all','الكل'],...IDS.map(id=>[id,nm(id)])].map(([k,l])=>`<button class="ghost ${filter===k?'on':''}" data-f="${k}">${esc(l)}</button>`).join('');
   const rows=entries.filter(e=>(filter==='all'||e.farm===filter)&&inCycle(e.farm,e.date)).sort((a,b)=>b.date.localeCompare(a.date)||a.farm.localeCompare(b.farm)).slice(0,300);
-  $('#all').innerHTML=rows.length?rows.map(e=>`<tr><td>${dshort(e.date)}</td><td><span class="dot" style="--c:${col(e.farm)}"></span>${esc(nm(e.farm))}</td><td class="n red">${fmt(e.mortality)}</td><td class="n">${fmt(e.feed,1)}</td><td>${esc(e.notes)}</td><td dir="ltr" style="text-align:start">${esc(e.by)}</td><td><button class="ghost" data-del="${esc(e.id)}">حذف</button></td></tr>`).join(''):'<tr><td colspan="7" class="empty">لا توجد سجلات بعد.</td></tr>';
+  $('#all').innerHTML=rows.length?rows.map(e=>`<tr><td>${dshort(e.date)}</td><td><span class="dot" style="--c:${col(e.farm)}"></span>${esc(nm(e.farm))}</td><td class="n red">${fmt(e.mortality)}</td><td class="n">${fmt(e.feed,1)}</td><td>${esc(e.notes)}</td><td dir="ltr" style="text-align:start">${esc(e.by)}</td><td>${owner?`<button class="ghost" data-del="${esc(e.id)}">حذف</button>`:''}</td></tr>`).join(''):'<tr><td colspan="7" class="empty">لا توجد سجلات بعد.</td></tr>';
   drawChart()}
 $('#cycX').addEventListener('click',()=>{const R=cycRows(),td=(v,b)=>`<td style="border:1px solid #000;text-align:center;${b?'font-weight:bold;background:#E8EAF6':''}">${esc(v)}</td>`;
   const html='<html><head><meta charset="utf-8"></head><body><h3>سجل الدورات</h3><table style="border-collapse:collapse;font-family:Arial"><tr>'+CYC_HEAD.map(x=>td(x,1)).join('')+'</tr>'+R.map(r=>'<tr>'+r.map(v=>td(v)).join('')+'</tr>').join('')+'</table></body></html>';
