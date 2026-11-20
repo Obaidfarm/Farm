@@ -380,7 +380,7 @@ $('#lf').addEventListener('submit',async e=>{e.preventDefault();const m=$('#lmsg
   catch(x){m.className='msg bad';m.textContent='البريد أو كلمة المرور غير صحيحة.'}});
 $('#out').addEventListener('click',()=>signOut(auth));
 
-onAuthStateChanged(auth,u=>{unsubs.forEach(f=>f());notedIds=null;unsubs=[];entries=[];invoices=[];
+onAuthStateChanged(auth,u=>{unsubs.forEach(f=>f());notedIds=null;hiSeen=null;wasNotes=false;unsubs=[];entries=[];invoices=[];
   if(!u){$('#login').classList.remove('hide');$('#app').classList.add('hide');$('#nav').classList.add('hide');return}
   owner=ADMIN_EMAILS.map(low).includes(low(u.email));admin=owner||SUP_EMAILS.map(low).includes(low(u.email));myFarm=farmOfEmail(u.email);
   if(!admin&&!myFarm){showErr('هذا الحساب غير مربوط بأي مزرعة.');signOut(auth);return}
@@ -390,7 +390,7 @@ onAuthStateChanged(auth,u=>{unsubs.forEach(f=>f());notedIds=null;unsubs=[];entri
   $('#pickWrap').classList.toggle('hide',!admin);$('#pickWrap2').classList.toggle('hide',!admin);$('#pickWrap3').classList.toggle('hide',!admin);$('#pickWrap4').classList.toggle('hide',!admin);$('#pick5').classList.toggle('hide',!admin);$('#pickWrap6').classList.toggle('hide',!admin);
   cur=myFarm||cur;invFarm=myFarm||invFarm;$('#invPickWrap').classList.toggle('hide',!admin);
   $('#whoami').textContent=(owner?'المدير':admin?'المشرف':nm(myFarm))+' · '+u.email;
-  all();renderShedForm();renderFeedForm();start();if(admin)startChicks();if(owner)startSalaries();show();});
+  all();renderShedForm();renderFeedForm();start();if(admin)startChicks();if(owner)startSalaries();show();setTimeout(notesWatch,0);});
 
 function start(){
   $('#conn').className='msg';$('#conn').textContent='جارٍ تحميل البيانات…';
@@ -780,19 +780,22 @@ async function pushNote(x){const title='ملاحظة جديدة — '+nm(x.farm)
   const opt={body,tag:'note-'+x.id,icon:'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E🐔%3C/text%3E%3C/svg%3E',data:{url:location.href.split('#')[0]+'#notes'}};
   try{const r=swReg||await navigator.serviceWorker?.ready;if(r){r.showNotification(title,opt);return}}catch(e){}
   try{new Notification(title,opt)}catch(e){}}
-function noteAlerts(){const L=myNotes(),seen=getSeen();if(location.hash==='#notes'&&!document.hidden)setSeen();
-  const unread=L.filter(x=>!x.done&&String(x.at||'')>(location.hash==='#notes'&&!document.hidden?new Date().toISOString():seen)).length;
+function noteAlerts(){const L=myNotes(),seen=getSeen();
+  const unread=L.filter(x=>!x.done&&String(x.at||'')>seen).length;
   const b=$('#nBadge');b.textContent=unread;b.classList.toggle('hide',!unread);
   if(notedIds===null){notedIds=new Set(L.map(x=>x.id));return}
   L.filter(x=>!notedIds.has(x.id)&&String(x.at||'')>T0).forEach(pushNote);L.forEach(x=>notedIds.add(x.id))}
-window.addEventListener('hashchange',()=>{if(location.hash==='#notes'){setSeen();noteAlerts();permUI()}});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&location.hash==='#notes'){setSeen();noteAlerts()}});
+let seenT=null,wasNotes=false,hiSeen=null;
+function notesWatch(){const on=location.hash==='#notes'&&!document.hidden&&!!auth.currentUser;clearTimeout(seenT);
+  if(on){if(hiSeen===null){hiSeen=getSeen();renderNotes()}permUI();seenT=setTimeout(()=>{setSeen();noteAlerts()},4000)}
+  else if(wasNotes){setSeen();hiSeen=null;noteAlerts()}wasNotes=on}
+window.addEventListener('hashchange',notesWatch);document.addEventListener('visibilitychange',notesWatch);
 const noteList=id=>invoices.filter(x=>x.kind==='note'&&x.farm===id).sort((a,b)=>b.date.localeCompare(a.date)||String(b.at).localeCompare(String(a.at)));
 function renderNotes(){if(!$('#nTable'))return;$('#nTitle').textContent='الملاحظات — '+nm(cur);
   const L=noteList(cur).filter(x=>nFilter==='all'||!x.done);
   $('#nTable').innerHTML=`<thead><tr><th style="width:70px">التاريخ</th><th>النص</th><th style="width:56px">التنفيذ</th>${admin?'<th style="width:36px"></th>':''}</tr></thead><tbody>`+
-   (L.length?L.map(x=>`<tr style="${x.done?'opacity:.6':''}"><td class="c">${dshort(x.date)}</td><td style="white-space:pre-wrap;text-align:start;padding:8px">${esc(x.text)}<div class="note" style="font-size:11px" dir="ltr">${esc(x.by||'')}${x.done?' · ✓ '+esc(x.doneBy||''):''}</div></td>
-     <td class="c"><label style="display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px"><input type="checkbox" data-ndone="${esc(x.id)}" ${x.done?'checked':''} style="width:22px;min-height:22px">${x.done?'تم':'لم يتم'}</label></td>${admin?`<td><button class="ghost" type="button" data-ndel="${esc(x.id)}" title="حذف" style="min-height:34px;padding:0 8px">✕</button></td>`:''}</tr>`).join(''):`<tr><td colspan="${admin?4:3}" class="empty">${nFilter==='open'?'لا توجد ملاحظات غير منفّذة':'لا توجد ملاحظات بعد'}</td></tr>`)+'</tbody>'}
+   (L.length?L.map(x=>{const nw=!x.done&&hiSeen!==null&&String(x.at||'')>hiSeen&&low(x.by||'')!==low(auth.currentUser?.email||'');return`<tr style="${x.done?'opacity:.6':nw?'background:#fdecea':''}"><td class="c">${dshort(x.date)}${nw?'<div class="nbadge" style="margin:4px 0 0">جديد</div>':''}</td><td style="white-space:pre-wrap;text-align:start;padding:8px">${esc(x.text)}<div class="note" style="font-size:11px" dir="ltr">${esc(x.by||'')}${x.done?' · ✓ '+esc(x.doneBy||''):''}</div></td>
+     <td class="c"><label style="display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px"><input type="checkbox" data-ndone="${esc(x.id)}" ${x.done?'checked':''} style="width:22px;min-height:22px">${x.done?'تم':'لم يتم'}</label></td>${admin?`<td><button class="ghost" type="button" data-ndel="${esc(x.id)}" title="حذف" style="min-height:34px;padding:0 8px">✕</button></td>`:''}</tr>`}).join(''):`<tr><td colspan="${admin?4:3}" class="empty">${nFilter==='open'?'لا توجد ملاحظات غير منفّذة':'لا توجد ملاحظات بعد'}</td></tr>`)+'</tbody>'}
 $('#nFlt').addEventListener('click',e=>{const b=e.target.closest('[data-nf]');if(!b)return;nFilter=b.dataset.nf;b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderNotes()});
 $('#nF').addEventListener('submit',async e=>{e.preventDefault();const m=$('#nMsg'),date=$('#nD').value||today(),text=$('#nT').value.trim();
   if(!text){m.className='msg bad';m.textContent='اكتب الملاحظة.';return}
