@@ -93,6 +93,7 @@ body.pm>*:not(#mPages){display:none!important}body.pm #mPages{display:block!impo
     <a href="#weights" data-v="weights">الأوزان</a>
     <a href="#meds" data-v="meds">الدواء</a>
     <a href="#notes" data-v="notes">الملاحظات</a>
+    <a href="#docs" data-v="docs">المستندات</a>
     <a href="#dash" data-v="dash" class="adm">المتابعة</a>
     <a href="#chicks" data-v="chicks" class="adm">استلام الصيصان</a>
     <a href="#salaries" data-v="salaries" class="adm">الرواتب</a>
@@ -179,6 +180,20 @@ body.pm>*:not(#mPages){display:none!important}body.pm #mPages{display:block!impo
       <h2 id="nTitle">الملاحظات</h2>
       <div class="tabs" id="nFlt" style="margin-bottom:8px"><button class="ghost on" type="button" data-nf="open">لم تُنفّذ</button><button class="ghost" type="button" data-nf="all">الكل</button></div>
       <div class="card scroll"><table class="sheds" id="nTable" style="font-size:14px"></table></div>
+    </section>
+
+    <section class="view" id="v-docs">
+      <div class="card" style="display:grid;gap:14px">
+        <div id="pickWrap6"><div class="note" style="margin-bottom:6px">المزرعة</div><div class="farms" id="pick6"></div></div>
+        <label>اسم المستند (اختياري)<input type="text" id="dcT" maxlength="120" placeholder="مثال: سندات الصيصان، شهادة صحية، فاتورة كهرباء"></label>
+        <label style="max-width:260px">التاريخ<input type="date" id="dcD"></label>
+        <label>اختر الملفات (صور، PDF، Excel، Word…)<input type="file" id="dcF" multiple accept="image/*,application/pdf,.pdf,.xls,.xlsx,.doc,.docx,.csv,.txt"></label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" type="button" id="dcUp">⬆ رفع المستندات</button></div>
+        <div class="msg" id="dcMsg"></div>
+        <div class="note">الصور تُصغَّر تلقائياً عشان ترتفع بسرعة. أقصى حجم للملف الواحد 10 ميجا.</div>
+      </div>
+      <h2 id="dcTitle">المستندات</h2>
+      <div class="card scroll"><table class="sheds" id="dcTable" style="font-size:14px"></table></div>
     </section>
 
     <section class="view" id="v-chicks">
@@ -283,7 +298,7 @@ body.pm>*:not(#mPages){display:none!important}body.pm #mPages{display:block!impo
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, deleteDoc, collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, getDoc, deleteDoc, collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 const firebaseConfig = {
   apiKey: "AIzaSyBUfqZ8IIp5x-_nGQzl9h6ennWkNfNhjrs",
   authDomain: "obaid-farms-4a41e.firebaseapp.com",
@@ -362,7 +377,7 @@ onAuthStateChanged(auth,u=>{unsubs.forEach(f=>f());unsubs=[];entries=[];invoices
   $('#conn').textContent='';
   $('#login').classList.add('hide');$('#app').classList.remove('hide');$('#nav').classList.remove('hide');
   document.querySelectorAll('.adm').forEach(a=>a.classList.toggle('hide',!admin));
-  $('#pickWrap').classList.toggle('hide',!admin);$('#pickWrap2').classList.toggle('hide',!admin);$('#pickWrap3').classList.toggle('hide',!admin);$('#pickWrap4').classList.toggle('hide',!admin);$('#pick5').classList.toggle('hide',!admin);
+  $('#pickWrap').classList.toggle('hide',!admin);$('#pickWrap2').classList.toggle('hide',!admin);$('#pickWrap3').classList.toggle('hide',!admin);$('#pickWrap4').classList.toggle('hide',!admin);$('#pick5').classList.toggle('hide',!admin);$('#pickWrap6').classList.toggle('hide',!admin);
   cur=myFarm||cur;invFarm=myFarm||invFarm;$('#invPickWrap').classList.toggle('hide',!admin);
   $('#whoami').textContent=(admin?'المدير':nm(myFarm))+' · '+u.email;
   all();renderShedForm();renderFeedForm();start();if(admin){startSalaries();startChicks()}show();});
@@ -374,6 +389,8 @@ function start(){
     all();if(!document.activeElement?.closest('#f'))renderShedForm();if(!document.activeElement?.closest('#f2'))renderFeedForm()},()=>{}));
   const iq=admin?collection(db,'invoices'):query(collection(db,'invoices'),where('farm','==',myFarm));
   unsubs.push(onSnapshot(iq,sn=>{invoices=sn.docs.map(x=>({id:x.id,...x.data()}));renderInv();if(!document.activeElement?.closest('#wF'))renderWeights();else renderWTable();if(!document.activeElement?.closest('#mF'))renderMeds();else renderMedTable();renderNotes()},e=>{$('#invTable').innerHTML=`<tr><td class="empty">${e.code==='permission-denied'?'لا توجد صلاحية لفواتير العلف — حدّث قواعد Firestore.':esc(e.message)}</td></tr>`}));
+  const fq=admin?collection(db,'files'):query(collection(db,'files'),where('farm','==',myFarm));
+  unsubs.push(onSnapshot(fq,sn=>{files=sn.docs.map(x=>({id:x.id,...x.data()}));renderDocs()},e=>{files=null;renderDocs(e)}));
   const q=admin?collection(db,'entries'):query(collection(db,'entries'),where('farm','==',myFarm));
   unsubs.push(onSnapshot(q,{includeMetadataChanges:true},sn=>{
     entries=sn.docs.map(x=>({id:x.id,pending:x.metadata.hasPendingWrites,...x.data()}));
@@ -382,17 +399,57 @@ function start(){
     e=>showErr(e.code==='permission-denied'?'لا توجد صلاحية لقراءة البيانات (راجع قواعد Firestore).':e.message)));
 }
 
+/* ---------- documents ---------- */
+let files=[];const PART=700000;$('#dcD').value=today();
+const fsize=n=>n>=1048576?fmt(n/1048576,1)+' ميجا':fmt(Math.max(1,Math.round(n/1024)))+' كيلو';
+const ficon=t=>/^image\//.test(t)?'🖼':/pdf/.test(t)?'📄':/sheet|excel|csv/.test(t)?'📊':/word/.test(t)?'📝':'📎';
+function renderDocs(err){const t=$('#dcTable');if(!t)return;$('#dcTitle').textContent='المستندات — '+nm(cur);
+  if(err||files===null){t.innerHTML=`<tr><td class="red">${err?.code==='permission-denied'?'لازم تضيف قواعد المستندات في Firebase أولاً.':'تعذّر تحميل المستندات.'}</td></tr>`;return}
+  const L=files.filter(x=>x.farm===cur&&x.done).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.at||0)-(a.at||0));
+  t.innerHTML='<tr><th>التاريخ</th><th>المستند</th><th>الحجم</th><th>رفعه</th><th></th></tr>'+(L.length?L.map(x=>`<tr><td>${dshort(x.date)}</td><td style="text-align:start">${ficon(x.type)} ${esc(x.title||x.name)}${x.title&&x.title!==x.name?`<div class="note">${esc(x.name)}</div>`:''}</td><td>${fsize(x.size)}</td><td dir="ltr" style="font-size:12px">${esc((x.by||'').split('@')[0])}</td>
+    <td style="white-space:nowrap"><button class="ghost" data-op="${esc(x.id)}">فتح</button> <button class="ghost" data-dl="${esc(x.id)}">تنزيل</button> <button class="ghost" data-dx="${esc(x.id)}">حذف</button></td></tr>`).join(''):'<tr><td colspan="5" class="note">ما فيه مستندات لهذي المزرعة بعد.</td></tr>')}
+function readURL(f){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(f)})}
+async function shrink(f){if(!/^image\/(jpeg|png|webp|heic|heif)/.test(f.type)||f.size<350000)return{url:await readURL(f),type:f.type||'application/octet-stream',size:f.size};
+  try{const u=await readURL(f),im=new Image();await new Promise((ok,no)=>{im.onload=ok;im.onerror=no;im.src=u});
+    const k=Math.min(1,2000/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+    const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);const out=c.toDataURL('image/jpeg',0.8);
+    return out.length<u.length?{url:out,type:'image/jpeg',size:Math.round(out.length*0.75)}:{url:u,type:f.type,size:f.size}}catch(e){return{url:await readURL(f),type:f.type,size:f.size}}}
+$('#dcUp').addEventListener('click',async()=>{const m=$('#dcMsg'),fl=[...$('#dcF').files],btn=$('#dcUp');
+  if(!fl.length){m.className='msg bad';m.textContent='اختر ملف أو أكثر أولاً.';return}
+  const farm=myFarm||cur,date=$('#dcD').value||today(),title=$('#dcT').value.trim();btn.disabled=true;let ok=0;
+  try{for(const [n,f] of fl.entries()){m.className='msg';m.textContent=`جارٍ رفع ${n+1} من ${fl.length}: ${f.name}…`;
+      const r=await shrink(f);if(r.size>10*1048576){m.className='msg bad';m.textContent=`${f.name} أكبر من 10 ميجا، ما ينرفع.`;continue}
+      const data=r.url.slice(r.url.indexOf(',')+1),parts=Math.ceil(data.length/PART)||1,id=farm+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+      const by=auth.currentUser?.email||'';const meta={farm,name:f.name,title:fl.length>1&&title?title+' ('+(n+1)+')':title,type:r.type,size:r.size,date,parts,by,at:Date.now(),done:false};
+      await setDoc(doc(db,'files',id),meta);
+      for(let i=0;i<parts;i++){m.textContent=`جارٍ رفع ${n+1} من ${fl.length}: ${f.name} (${Math.round(i/parts*100)}%)…`;await setDoc(doc(db,'fileparts',id+'_'+i),{farm,fid:id,i,data:data.slice(i*PART,(i+1)*PART)})}
+      await setDoc(doc(db,'files',id),{...meta,done:true});ok++}
+    if(ok){m.className='msg ok';m.textContent=`تم رفع ${ok} مستند.`;$('#dcF').value='';$('#dcT').value=''}}
+  catch(e){m.className='msg bad';m.textContent=e.code==='permission-denied'?'ما فيه صلاحية: لازم تضيف قواعد المستندات في Firebase.':'تعذّر الرفع: '+(e.message||e)}
+  btn.disabled=false});
+async function fileBlob(x){const ps=[];for(let i=0;i<(x.parts||1);i++){const d=await getDoc(doc(db,'fileparts',x.id+'_'+i));if(!d.exists())throw new Error('ملف ناقص');ps.push(d.data().data)}
+  const bin=atob(ps.join('')),u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);return new Blob([u8],{type:x.type||'application/octet-stream'})}
+$('#dcTable').addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;const m=$('#dcMsg');
+  const id=b.dataset.op||b.dataset.dl||b.dataset.dx,x=files.find(f=>f.id===id);if(!x)return;
+  if(b.dataset.dx){if(b.dataset.c!=='1'){b.dataset.c='1';b.textContent='تأكيد الحذف';b.classList.add('red');return}
+    b.disabled=true;try{await deleteDoc(doc(db,'files',id));for(let i=0;i<(x.parts||1);i++)await deleteDoc(doc(db,'fileparts',id+'_'+i))}catch(err){b.disabled=false;b.textContent='تعذّر'}return}
+  const w=b.dataset.op?window.open('','_blank'):null;if(w)try{w.document.write('<p style="font-family:sans-serif;text-align:center;margin-top:40px">جارٍ فتح المستند…</p>')}catch(_){}
+  m.className='msg';m.textContent='جارٍ تحميل المستند…';
+  try{const bl=await fileBlob(x),u=URL.createObjectURL(bl);m.textContent='';
+    if(b.dataset.op){if(w)w.location.href=u;else location.href=u}else save(bl,x.name)}
+  catch(err){if(w)w.close();m.className='msg bad';m.textContent='تعذّر فتح المستند: '+(err.message||err)}});
+
 /* ---------- views ---------- */
-function show(){let v=location.hash.slice(1);if(!['entry','sfeed','dash','settings','feed','weights','meds','notes','salaries','chicks'].includes(v)||(!admin&&!['entry','sfeed','feed','weights','meds','notes'].includes(v)))v=admin?'dash':'entry';
+function show(){let v=location.hash.slice(1);if(!['entry','sfeed','dash','settings','feed','weights','meds','notes','docs','salaries','chicks'].includes(v)||(!admin&&!['entry','sfeed','feed','weights','meds','notes','docs'].includes(v)))v=admin?'dash':'entry';
   document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
   document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.dataset.v===v));if(v==='dash')drawChart()}
 addEventListener('hashchange',show);
 
 /* ---------- entry (per shed) ---------- */
 $('#d').value=today();$('#d').max=addDays(today(),1);$('#d2').value=today();$('#d2').max=addDays(today(),1);$('#xd').value=today();$('#xd').max=today();
-function renderPick(){$('#pick5').innerHTML=$('#pick4').innerHTML=$('#pick3').innerHTML=$('#pick2').innerHTML=$('#pick').innerHTML=IDS.map(id=>`<button type="button" data-id="${id}" style="--c:${col(id)}" class="${id===cur?'on':''}">${esc(nm(id))}</button>`).join('');
+function renderPick(){$('#pick6').innerHTML=$('#pick5').innerHTML=$('#pick4').innerHTML=$('#pick3').innerHTML=$('#pick2').innerHTML=$('#pick').innerHTML=IDS.map(id=>`<button type="button" data-id="${id}" style="--c:${col(id)}" class="${id===cur?'on':''}">${esc(nm(id))}</button>`).join('');
   $('#lastT').textContent='آخر 7 أيام — '+nm(cur)}
-['#pick','#pick2','#pick3','#pick4','#pick5'].forEach(s=>$(s).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cur=b.dataset.id;renderPick();renderWeights();renderMeds();renderNotes();renderShedForm();renderFeedForm();renderLast()}));
+['#pick','#pick2','#pick3','#pick4','#pick5','#pick6'].forEach(s=>$(s).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cur=b.dataset.id;renderPick();renderWeights();renderMeds();renderNotes();renderDocs();renderShedForm();renderFeedForm();renderLast()}));
 $('#d').addEventListener('change',renderShedForm);$('#d2').addEventListener('change',renderFeedForm);
 function renderShedForm(){const date=$('#d').value||today(),rows=shedRows(cur,date),e=entryOf(cur,date);
   const v=x=>x==null?'':x;
