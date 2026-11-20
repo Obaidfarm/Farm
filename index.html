@@ -291,6 +291,8 @@ body.pm>*:not(#mPages){display:none!important}body.pm #mPages{display:block!impo
     </section>
 
     <section class="view" id="v-settings">
+      <div class="card" style="max-width:760px;margin-bottom:14px"><h2 style="margin:0 0 10px">الحسابات</h2><div class="scroll"><table class="sheds" id="accTbl" style="font-size:14px"></table></div>
+        <p class="note" style="margin:8px 0 0">لإضافة كلمة مرور أو تغييرها: Firebase ← Authentication ← Users.</p></div>
       <form class="card form" id="sf" style="max-width:760px"></form>
       <p class="note">تواريخ استلام العنابر معبّأة من أوراقكم (من العمر يوم 18/11)، وعليها يتحسب العمر (old). في خانة «الرصيد قبل بداية التسجيل» اكتب رصيد كل عنبر (balance) من آخر ورقة مكتوبة باليد، واختر «بداية التسجيل في البرنامج» اليوم اللي بعدها. من بعدها يتحسب الرصيد لحاله: الرصيد − النفوق اليومي. عند بدء دورة جديدة غيّر التواريخ والأرصدة.</p>
     </section>
@@ -867,7 +869,11 @@ $('#sX').addEventListener('click',()=>{const m=$('#sM').value||curMonth(),[y,mo]
   save(new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel'}),`رواتب-${m}.xls`);$('#sMsg').className='msg ok';$('#sMsg').textContent='تم تنزيل الملف (المزارع الثلاث مع خانة التوقيع).'});
 
 /* ---------- settings ---------- */
-function renderSettings(){if(!admin)return;
+function renderAccounts(){const t=$('#accTbl');if(!t||!owner)return;
+  const A=[...ADMIN_EMAILS.map(e=>[e,'المدير','كل شيء']),...SUP_EMAILS.map(e=>[e,'المشرف (خلاد)','المزارع الثلاث كلها — ما عدا الرواتب والإعدادات']),...IDS.map(id=>[FARM_EMAILS[id],'مزرعة','مزرعة '+nm(id)+' فقط'])];
+  const last={};[...entries,...invoices,...(files||[])].forEach(x=>{const b=low(x.by||''),a=+x.at||0;if(b&&a>(last[b]||0))last[b]=a});
+  t.innerHTML='<tr><th>الحساب</th><th>الدور</th><th>الصلاحيات</th><th>آخر إدخال</th></tr>'+A.map(([e,r,p])=>{const l=last[low(e)];return`<tr><td dir="ltr" style="font-size:13px">${esc(e)}</td><td><b>${esc(r)}</b></td><td style="text-align:start">${esc(p)}</td><td style="white-space:nowrap">${l?new Date(l).toLocaleString('ar-SA-u-nu-latn-ca-gregory',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}</td></tr>`}).join('')}
+function renderSettings(){renderAccounts();if(!admin)return;
   $('#sf').innerHTML=IDS.map(id=>{const f=farms[id],sl=shedList(id);
     return `<fieldset data-id="${id}" style="border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;border-inline-start:5px solid var(--${id})"><legend style="padding:0 6px;font-weight:700">${esc(nm(id))}</legend>
     <div class="card" style="background:var(--bg);display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px"><div><b>الدورة رقم ${cyc(id)}</b><div class="note">${farmStart(id)?(today()>=farmStart(id)?'بدأت '+dshort(farmStart(id))+' · اليوم '+(dayDiff(today(),farmStart(id))+1):'تبدأ '+dshort(farmStart(id))):'حدّد تاريخ الاستلام'}</div></div>
