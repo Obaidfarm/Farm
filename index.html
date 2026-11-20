@@ -21,6 +21,8 @@ header{background:var(--head);color:#fff;padding:20px max(5vw,16px) 0}
 header h1{margin:0;font-size:clamp(24px,4vw,34px);line-height:1.1;font-weight:700}
 header p{margin:4px 0 14px;opacity:.8;font-size:14px}
 nav{display:flex;gap:4px;flex-wrap:wrap;padding-bottom:6px}nav a{border-radius:10px!important;padding:9px 12px!important}
+.nbadge{display:inline-block;min-width:20px;height:20px;line-height:20px;padding:0 6px;margin-inline-start:6px;border-radius:10px;background:#d93025;color:#fff;font-size:12px;font-weight:700;text-align:center}.nbadge.hide{display:none}
+#nToast{position:fixed;inset-inline:12px;bottom:16px;z-index:99;background:#1f4d3a;color:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 6px 24px rgba(0,0,0,.3);display:flex;gap:10px;align-items:center;cursor:pointer;line-height:1.6}
 nav a{flex:none;color:#fff;text-decoration:none;padding:12px 16px;border-radius:10px 10px 0 0;opacity:.8;font-weight:500}
 nav a.on{background:var(--bg);color:var(--ink);opacity:1}
 main{max-width:1100px;margin:0 auto;padding:24px max(4vw,14px) 48px}
@@ -92,7 +94,7 @@ body.pm>*:not(#mPages){display:none!important}body.pm #mPages{display:block!impo
     <a href="#feed" data-v="feed">فواتير العلف</a>
     <a href="#weights" data-v="weights">الأوزان</a>
     <a href="#meds" data-v="meds">الدواء</a>
-    <a href="#notes" data-v="notes">الملاحظات</a>
+    <a href="#notes" data-v="notes">الملاحظات<span class="nbadge hide" id="nBadge"></span></a>
     <a href="#docs" data-v="docs">المستندات</a>
     <a href="#dash" data-v="dash" class="adm">المتابعة</a>
     <a href="#chicks" data-v="chicks" class="adm">استلام الصيصان</a>
@@ -178,6 +180,7 @@ body.pm>*:not(#mPages){display:none!important}body.pm #mPages{display:block!impo
         <div class="msg" id="nMsg"></div>
       </form>
       <h2 id="nTitle">الملاحظات</h2>
+      <div id="nPerm" class="card hide" style="margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span>🔔 فعّل التنبيهات عشان يجيك إشعار على الجوال لما تنكتب ملاحظة جديدة.</span><button class="btn" type="button" id="nPermB">تفعيل التنبيهات</button></div>
       <div class="tabs" id="nFlt" style="margin-bottom:8px"><button class="ghost on" type="button" data-nf="open">لم تُنفّذ</button><button class="ghost" type="button" data-nf="all">الكل</button></div>
       <div class="card scroll"><table class="sheds" id="nTable" style="font-size:14px"></table></div>
     </section>
@@ -377,12 +380,12 @@ $('#lf').addEventListener('submit',async e=>{e.preventDefault();const m=$('#lmsg
   catch(x){m.className='msg bad';m.textContent='البريد أو كلمة المرور غير صحيحة.'}});
 $('#out').addEventListener('click',()=>signOut(auth));
 
-onAuthStateChanged(auth,u=>{unsubs.forEach(f=>f());unsubs=[];entries=[];invoices=[];
+onAuthStateChanged(auth,u=>{unsubs.forEach(f=>f());notedIds=null;unsubs=[];entries=[];invoices=[];
   if(!u){$('#login').classList.remove('hide');$('#app').classList.add('hide');$('#nav').classList.add('hide');return}
   owner=ADMIN_EMAILS.map(low).includes(low(u.email));admin=owner||SUP_EMAILS.map(low).includes(low(u.email));myFarm=farmOfEmail(u.email);
   if(!admin&&!myFarm){showErr('هذا الحساب غير مربوط بأي مزرعة.');signOut(auth);return}
   $('#conn').textContent='';
-  $('#login').classList.add('hide');$('#app').classList.remove('hide');$('#nav').classList.remove('hide');
+  $('#login').classList.add('hide');$('#app').classList.remove('hide');permUI();$('#nav').classList.remove('hide');
   document.querySelectorAll('.adm').forEach(a=>a.classList.toggle('hide',!admin));document.querySelectorAll('.own').forEach(a=>a.classList.toggle('hide',!owner));
   $('#pickWrap').classList.toggle('hide',!admin);$('#pickWrap2').classList.toggle('hide',!admin);$('#pickWrap3').classList.toggle('hide',!admin);$('#pickWrap4').classList.toggle('hide',!admin);$('#pick5').classList.toggle('hide',!admin);$('#pickWrap6').classList.toggle('hide',!admin);
   cur=myFarm||cur;invFarm=myFarm||invFarm;$('#invPickWrap').classList.toggle('hide',!admin);
@@ -395,7 +398,7 @@ function start(){
     $('#whoami').textContent=(owner?'المدير':admin?'المشرف':nm(myFarm))+' · '+(auth.currentUser?.email||'');
     all();if(!document.activeElement?.closest('#f'))renderShedForm();if(!document.activeElement?.closest('#f2'))renderFeedForm()},()=>{}));
   const iq=admin?collection(db,'invoices'):query(collection(db,'invoices'),where('farm','==',myFarm));
-  unsubs.push(onSnapshot(iq,sn=>{invoices=sn.docs.map(x=>({id:x.id,...x.data()}));renderInv();if(!document.activeElement?.closest('#wF'))renderWeights();else renderWTable();if(!document.activeElement?.closest('#mF'))renderMeds();else renderMedTable();renderNotes()},e=>{$('#invTable').innerHTML=`<tr><td class="empty">${e.code==='permission-denied'?'لا توجد صلاحية لفواتير العلف — حدّث قواعد Firestore.':esc(e.message)}</td></tr>`}));
+  unsubs.push(onSnapshot(iq,sn=>{invoices=sn.docs.map(x=>({id:x.id,...x.data()}));renderInv();if(!document.activeElement?.closest('#wF'))renderWeights();else renderWTable();if(!document.activeElement?.closest('#mF'))renderMeds();else renderMedTable();renderNotes();noteAlerts()},e=>{$('#invTable').innerHTML=`<tr><td class="empty">${e.code==='permission-denied'?'لا توجد صلاحية لفواتير العلف — حدّث قواعد Firestore.':esc(e.message)}</td></tr>`}));
   const fq=admin?collection(db,'files'):query(collection(db,'files'),where('farm','==',myFarm));
   unsubs.push(onSnapshot(fq,sn=>{files=sn.docs.map(x=>({id:x.id,...x.data()}));renderDocs()},e=>{files=null;renderDocs(e)}));
   const q=admin?collection(db,'entries'):query(collection(db,'entries'),where('farm','==',myFarm));
@@ -760,6 +763,30 @@ $('#mX').addEventListener('click',()=>{const ids=admin?IDS:[cur],td=(v,b,w)=>`<t
 
 /* ---------- orders & notes ---------- */
 $('#nD').value=today();let nFilter='open';
+/* ---------- note alerts ---------- */
+const T0=new Date().toISOString();let notedIds=null;
+const seenKey=()=>'notesSeen_'+low(auth.currentUser?.email||'');
+const getSeen=()=>{try{return localStorage.getItem(seenKey())||''}catch(e){return ''}};
+const setSeen=()=>{try{localStorage.setItem(seenKey(),new Date().toISOString())}catch(e){}};
+const myNotes=()=>{const me=low(auth.currentUser?.email||'');return invoices.filter(x=>x.kind==='note'&&low(x.by||'')!==me&&(admin||x.farm===myFarm))};
+let swReg=null;if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').then(r=>swReg=r).catch(()=>{});
+function permUI(){const ok=!('Notification' in window)||Notification.permission!=='default';$('#nPerm').classList.toggle('hide',ok)}
+$('#nPermB').addEventListener('click',async()=>{try{await Notification.requestPermission()}catch(e){}permUI()});
+async function pushNote(x){const title='ملاحظة جديدة — '+nm(x.farm),body=(x.text||'').slice(0,180);
+  try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+  let t=$('#nToast');if(!t){t=document.createElement('div');t.id='nToast';document.body.appendChild(t);t.addEventListener('click',()=>{t.remove();location.hash='#notes'})}
+  t.innerHTML=`<span style="font-size:24px">🔔</span><div><b>${esc(title)}</b><div style="font-size:14px;opacity:.9">${esc(body)}</div></div>`;clearTimeout(t._h);t._h=setTimeout(()=>t.remove(),12000);
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  const opt={body,tag:'note-'+x.id,icon:'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E🐔%3C/text%3E%3C/svg%3E',data:{url:location.href.split('#')[0]+'#notes'}};
+  try{const r=swReg||await navigator.serviceWorker?.ready;if(r){r.showNotification(title,opt);return}}catch(e){}
+  try{new Notification(title,opt)}catch(e){}}
+function noteAlerts(){const L=myNotes(),seen=getSeen();if(location.hash==='#notes'&&!document.hidden)setSeen();
+  const unread=L.filter(x=>!x.done&&String(x.at||'')>(location.hash==='#notes'&&!document.hidden?new Date().toISOString():seen)).length;
+  const b=$('#nBadge');b.textContent=unread;b.classList.toggle('hide',!unread);
+  if(notedIds===null){notedIds=new Set(L.map(x=>x.id));return}
+  L.filter(x=>!notedIds.has(x.id)&&String(x.at||'')>T0).forEach(pushNote);L.forEach(x=>notedIds.add(x.id))}
+window.addEventListener('hashchange',()=>{if(location.hash==='#notes'){setSeen();noteAlerts();permUI()}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&location.hash==='#notes'){setSeen();noteAlerts()}});
 const noteList=id=>invoices.filter(x=>x.kind==='note'&&x.farm===id).sort((a,b)=>b.date.localeCompare(a.date)||String(b.at).localeCompare(String(a.at)));
 function renderNotes(){if(!$('#nTable'))return;$('#nTitle').textContent='الملاحظات — '+nm(cur);
   const L=noteList(cur).filter(x=>nFilter==='all'||!x.done);
