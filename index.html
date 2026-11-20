@@ -216,10 +216,10 @@ body.pm>*:not(#mPages){display:none!important}body.pm #mPages{display:block!impo
         <span class="msg" id="xmsg"></span>
       </div>
       <div class="card" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:12px">
-        <label style="min-width:150px">طباعة صفحات النفوق<select id="pmF"><option value="all">المزارع الثلاث</option><option value="f1">خليص</option><option value="f2">رابغ</option><option value="f3">قديد</option></select></label>
+        <label style="min-width:150px">طباعة الصفحات<select id="pmF"><option value="all">المزارع الثلاث</option><option value="f1">خليص</option><option value="f2">رابغ</option><option value="f3">قديد</option></select></label>
         <label style="min-width:150px">من<input type="date" id="pmA"></label>
         <label style="min-width:150px">إلى<input type="date" id="pmB"></label>
-        <button class="btn" id="pmGo" type="button">🖨 طباعة كل الصفحات</button>
+        <button class="btn" id="pmGo" type="button">🖨 طباعة النفوق</button><button class="btn" id="pmGoF" type="button">🖨 طباعة علف العنابر</button>
         <span class="msg" id="pmM"></span>
       </div>
       <div class="grid3" id="cards"></div>
@@ -494,16 +494,23 @@ const HEAD=['No.of shed','old','night','morning','isolation','total','balance'];
 function pmDefaults(){const f=$('#pmF').value,ids=f==='all'?IDS:[f];
   const st=entries.filter(e=>ids.includes(e.farm)&&inCycle(e.farm,e.date)).map(e=>e.date).sort()[0]||ids.map(id=>cycStart(id)||farmStart(id)).filter(Boolean).sort()[0]||today();$('#pmA').value=st;$('#pmB').value=today()}
 let pmTouched=false;$('#pmF').addEventListener('change',()=>{pmTouched=false;pmDefaults()});['#pmA','#pmB'].forEach(k=>$(k).addEventListener('change',()=>pmTouched=true));
-$('#pmGo').addEventListener('click',()=>{const m=$('#pmM');if(!$('#pmA').value||!pmTouched)pmDefaults();
+function pmPrint(kind){const m=$('#pmM');if(!$('#pmA').value||!pmTouched)pmDefaults();
   const f=$('#pmF').value,ids=f==='all'?IDS:[f],a=$('#pmA').value,b=$('#pmB').value||today();
   const days=[...new Set(entries.filter(e=>ids.includes(e.farm)&&e.date>=a&&e.date<=b&&inCycle(e.farm,e.date)).map(e=>e.date))].sort();
-  const pages=[];for(const d of days)for(const id of ids){if(!entryOf(id,d))continue;const R=reportData(id,d);
-    pages.push(`<div class="mpg"><h2>${esc(R.name)}</h2><div class="dd">Day/ ${esc(R.day)}<br>Date/ ${esc(R.dateStr)}</div><table><tr>${HEAD.map(h=>`<th>${h}</th>`).join('')}</tr>${R.body.map(r=>`<tr>${r.map(v=>`<td>${v===''?'':esc(typeof v==='number'?fmt(v):v)}</td>`).join('')}</tr>`).join('')}<tr class="t">${R.total.map(v=>`<td>${v===''?'':esc(typeof v==='number'?fmt(v):v)}</td>`).join('')}</tr></table>${R.notes?`<div class="nt">ملاحظات: ${esc(R.notes)}</div>`:''}</div>`)}
+  const cell=v=>`<td>${v===''||v==null?'':esc(typeof v==='number'?fmt(v,2):v)}</td>`;
+  const pages=[];for(const id of ids)for(const d of days){if(!entryOf(id,d))continue;const R=reportData(id,d);let H,body,tot,nt='';
+    if(kind==='feed'){const rows=shedRows(id,d);H=['No.of shed','received','consumed','remaining'];
+      body=rows.map(r=>[r.no,r.r==null||r.r===''?'':num(r.r),r.f==null||r.f===''?'':num(r.f),r.feedRem==null?'':r.feedRem]);
+      const sm=k=>body.reduce((x,r)=>x+(r[k]===''?0:+r[k]),0);tot=['Total',sm(1),sm(2),body.some(r=>r[3]!=='')?Math.round(sm(3)*100)/100:''];
+      H=H.map((h,k)=>k?h+' ('+unitOf(id)+')':h)}
+    else{H=HEAD;body=R.body;tot=R.total;nt=R.notes}
+    pages.push(`<div class="mpg"><h2>${esc(R.name)}${kind==='feed'?' — Feed':''}</h2><div class="dd">Day/ ${esc(R.day)}<br>Date/ ${esc(R.dateStr)}</div><table><tr>${H.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>${body.map(r=>`<tr>${r.map(cell).join('')}</tr>`).join('')}<tr class="t">${tot.map(cell).join('')}</tr></table>${nt?`<div class="nt">ملاحظات: ${esc(nt)}</div>`:''}</div>`)}
   if(!pages.length){m.className='msg bad';m.textContent='ما فيه أيام مسجّلة في هذي الفترة.';return}
   let box=$('#mPages');if(!box){box=document.createElement('div');box.id='mPages';document.body.appendChild(box)}
   box.innerHTML=pages.join('');m.className='msg ok';m.textContent=`${pages.length} صفحة جاهزة للطباعة.`;
   document.body.classList.add('pm');const done=()=>{document.body.classList.remove('pm');window.removeEventListener('afterprint',done)};
-  window.addEventListener('afterprint',done);setTimeout(()=>{try{window.print()}catch(e){}},100)});
+  window.addEventListener('afterprint',done);setTimeout(()=>{try{window.print()}catch(e){}},100)}
+$('#pmGo').addEventListener('click',()=>pmPrint('mort'));$('#pmGoF').addEventListener('click',()=>pmPrint('feed'));
 async function downloadXlsx(ids,date,msgEl,invOnly){
   msgEl.className='msg';msgEl.textContent='جارٍ تجهيز الملف…';
   const fname=invOnly?(ids.length>1?`فواتير-العلف-المزارع-${date}.xlsx`:`علف-${nm(ids[0])}-${date}.xlsx`):`تقرير-${ids.length===1?nm(ids[0])+'-':''}${date}.xlsx`;
