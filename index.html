@@ -185,9 +185,9 @@ body.pm>*:not(#mPages){display:none!important}body.pm #mPages{display:block!impo
     <section class="view" id="v-docs">
       <div class="card" style="display:grid;gap:14px">
         <div id="pickWrap6"><div class="note" style="margin-bottom:6px">المزرعة</div><div class="farms" id="pick6"></div></div>
-        <div><div class="note" style="margin-bottom:6px">نوع المستند</div><div class="tabs" id="dcKind"><button class="ghost on" type="button" data-k="cyc">مستند الدورة الحالية</button><button class="ghost" type="button" data-k="perm">📌 مستند ثابت (سجل، رخصة…)</button></div></div>
-        <label id="dcExpW" class="hide" style="max-width:260px">تاريخ الانتهاء (اختياري)<input type="date" id="dcExp"></label>
-        <label>اسم المستند (اختياري)<input type="text" id="dcT" maxlength="120" placeholder="مثال: سندات الصيصان، شهادة صحية، فاتورة كهرباء"></label>
+        <div><div class="note" style="margin-bottom:6px">نوع المستند</div><div class="tabs" id="dcKind"><button class="ghost on" type="button" data-k="cyc">مستند الدورة الحالية</button><button class="ghost" type="button" data-k="perm">📌 مستند ثابت (سجل، رخصة…)</button><button class="ghost" type="button" data-k="ids">🪪 هوية عامل</button></div></div>
+        <label id="dcExpW" class="hide" style="max-width:260px"><span id="dcExpL">تاريخ الانتهاء (اختياري)</span><input type="date" id="dcExp"></label>
+        <label><span id="dcTL">اسم المستند (اختياري)</span><input type="text" id="dcT" maxlength="120" placeholder="مثال: سندات الصيصان، شهادة صحية، فاتورة كهرباء"></label>
         <label>اختر الملفات (صور، PDF، Excel، Word…)<input type="file" id="dcF" multiple accept="image/*,application/pdf,.pdf,.xls,.xlsx,.doc,.docx,.csv,.txt"></label>
         <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" type="button" id="dcUp">⬆ رفع المستندات</button></div>
         <div class="msg" id="dcMsg"></div>
@@ -408,24 +408,25 @@ function start(){
 
 /* ---------- documents ---------- */
 let files=[];const PART=700000;let dcCyc=null,dcFarm=null,dcKind='cyc';
-$('#dcKind').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b)return;dcKind=b.dataset.k;$('#dcKind').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));$('#dcExpW').classList.toggle('hide',dcKind!=='perm')});
+$('#dcKind').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b)return;dcKind=b.dataset.k;$('#dcKind').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));$('#dcExpW').classList.toggle('hide',dcKind==='cyc');const ID=dcKind==='ids';
+  $('#dcTL').textContent=ID?'اسم العامل':'اسم المستند (اختياري)';$('#dcT').placeholder=ID?'مثال: محمد أحمد — رقم الإقامة':'مثال: سندات الصيصان، شهادة صحية، فاتورة كهرباء';$('#dcExpL').textContent=ID?'تاريخ انتهاء الهوية/الإقامة (اختياري)':'تاريخ الانتهاء (اختياري)'});
 const dmy=d=>d?d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4):'';
 function cycList(id){const H=(farms[id].history||[]).map(h=>({no:+h.cycle,start:h.start||'',end:h.end||''}));
   return [{no:cyc(id),start:cycStart(id)||farmStart(id)||'',end:'',current:true},...H.slice().reverse()]}
-function fileCyc(x){if(x.perm)return 0;if(x.cycle)return +x.cycle;const h=(farms[x.farm]?.history||[]).find(h=>h.start&&x.date>=h.start&&(!h.end||x.date<=h.end));return h?+h.cycle:cyc(x.farm)}
+function fileCyc(x){if(x.idcard)return -1;if(x.perm)return 0;if(x.cycle)return +x.cycle;const h=(farms[x.farm]?.history||[]).find(h=>h.start&&x.date>=h.start&&(!h.end||x.date<=h.end));return h?+h.cycle:cyc(x.farm)}
 const fsize=n=>n>=1048576?fmt(n/1048576,1)+' ميجا':fmt(Math.max(1,Math.round(n/1024)))+' كيلو';
 const ficon=t=>/^image\//.test(t)?'🖼':/pdf/.test(t)?'📄':/sheet|excel|csv/.test(t)?'📊':/word/.test(t)?'📝':'📎';
 function renderDocs(err){const t=$('#dcTable');if(!t)return;$('#dcTitle').textContent='المستندات — '+nm(cur);
   if(dcFarm!==cur||dcCyc==null){dcFarm=cur;dcCyc=cyc(cur)}
   const fc=[...new Set((files||[]).filter(x=>x.farm===cur&&x.done).map(fileCyc))],base=cycList(cur);
-  const CL=[...base.filter(c=>c.current||fc.includes(c.no)),...fc.filter(n=>n&&!base.some(c=>c.no===n)).map(n=>{const ds=(files||[]).filter(x=>x.farm===cur&&fileCyc(x)===n).map(x=>x.date).sort();return{no:n,start:ds[0],end:ds[ds.length-1]}})].sort((a,b)=>b.no-a.no);
-  CL.unshift({no:0,perm:true});
-  $('#dcCy').innerHTML=CL.map(c=>c.perm?`<button class="ghost ${dcCyc===0?'on':''}" type="button" data-cy="0">📌 مستندات ثابتة</button>`:`<button class="ghost ${c.no===dcCyc?'on':''}" type="button" data-cy="${c.no}">الدورة ${c.no}${c.current?' (الحالية)':''}</button>`).join('');
-  const C=CL.find(c=>c.no===dcCyc)||CL[1];$('#dcCyN').textContent=C?.perm?'مستندات ما تتغيّر مع الدورات: السجل التجاري، السجل الزراعي، الرخص…':C?`بداية الدورة: ${dmy(C.start)||'—'} · نهاية الدورة: ${C.current?'لم تنتهِ بعد':dmy(C.end)||'—'}`:'';
+  const CL=[...base.filter(c=>c.current||fc.includes(c.no)),...fc.filter(n=>n>0&&!base.some(c=>c.no===n)).map(n=>{const ds=(files||[]).filter(x=>x.farm===cur&&fileCyc(x)===n).map(x=>x.date).sort();return{no:n,start:ds[0],end:ds[ds.length-1]}})].sort((a,b)=>b.no-a.no);
+  CL.unshift({no:-1,perm:true},{no:0,perm:true});
+  $('#dcCy').innerHTML=CL.map(c=>c.perm?`<button class="ghost ${dcCyc===c.no?'on':''}" type="button" data-cy="${c.no}">${c.no===-1?'🪪 هويات العمال':'📌 مستندات ثابتة'}</button>`:`<button class="ghost ${c.no===dcCyc?'on':''}" type="button" data-cy="${c.no}">الدورة ${c.no}${c.current?' (الحالية)':''}</button>`).join('');
+  const C=CL.find(c=>c.no===dcCyc)||CL[2];$('#dcCyN').textContent=C?.no===-1?'هويات وإقامات عمال المزرعة. اللي باقي على انتهائها 30 يوم أو أقل تطلع بالأحمر.':C?.perm?'مستندات ما تتغيّر مع الدورات: السجل التجاري، السجل الزراعي، الرخص…':C?`بداية الدورة: ${dmy(C.start)||'—'} · نهاية الدورة: ${C.current?'لم تنتهِ بعد':dmy(C.end)||'—'}`:'';
   if(err||files===null){t.innerHTML=`<tr><td class="red">${err?.code==='permission-denied'?'لازم تضيف قواعد المستندات في Firebase أولاً.':'تعذّر تحميل المستندات.'}</td></tr>`;return}
   const L=files.filter(x=>x.farm===cur&&x.done&&fileCyc(x)===dcCyc).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.at||0)-(a.at||0));
-  t.innerHTML=`<tr><th>تاريخ الرفع</th><th>المستند</th>${dcCyc===0?'<th>ينتهي</th>':''}<th>الحجم</th><th>رفعه</th><th></th></tr>`+(L.length?L.map(x=>`<tr><td style="white-space:nowrap">${x.date?x.date.slice(8,10)+'/'+x.date.slice(5,7)+'/'+x.date.slice(0,4):''}</td><td style="text-align:start">${ficon(x.type)} ${esc(x.title||x.name)}${x.title&&x.title!==x.name?`<div class="note">${esc(x.name)}</div>`:''}</td>${dcCyc===0?`<td style="white-space:nowrap" class="${x.exp&&x.exp<today()?'red':x.exp&&x.exp<=addDays(today(),30)?'red':''}">${x.exp?dmy(x.exp)+(x.exp<today()?'<div class="note red">منتهي</div>':x.exp<=addDays(today(),30)?'<div class="note red">قرب ينتهي</div>':''):'—'}</td>`:''}<td>${fsize(x.size)}</td><td dir="ltr" style="font-size:12px">${esc((x.by||'').split('@')[0])}</td>
-    <td style="white-space:nowrap"><button class="ghost" data-op="${esc(x.id)}">فتح</button> <button class="ghost" data-dl="${esc(x.id)}">تنزيل</button> <button class="ghost" data-dx="${esc(x.id)}">حذف</button></td></tr>`).join(''):`<tr><td colspan="6" class="note">${dcCyc===0?'ما فيه مستندات ثابتة بعد.':'ما فيه مستندات في هذي الدورة.'}</td></tr>`)}
+  t.innerHTML=`<tr><th>تاريخ الرفع</th><th>${dcCyc===-1?'العامل':'المستند'}</th>${dcCyc<=0?'<th>ينتهي</th>':''}<th>الحجم</th><th>رفعه</th><th></th></tr>`+(L.length?L.map(x=>`<tr><td style="white-space:nowrap">${x.date?x.date.slice(8,10)+'/'+x.date.slice(5,7)+'/'+x.date.slice(0,4):''}</td><td style="text-align:start">${ficon(x.type)} ${esc(x.title||x.name)}${x.title&&x.title!==x.name?`<div class="note">${esc(x.name)}</div>`:''}</td>${dcCyc<=0?`<td style="white-space:nowrap" class="${x.exp&&x.exp<today()?'red':x.exp&&x.exp<=addDays(today(),30)?'red':''}">${x.exp?dmy(x.exp)+(x.exp<today()?'<div class="note red">منتهي</div>':x.exp<=addDays(today(),30)?'<div class="note red">قرب ينتهي</div>':''):'—'}</td>`:''}<td>${fsize(x.size)}</td><td dir="ltr" style="font-size:12px">${esc((x.by||'').split('@')[0])}</td>
+    <td style="white-space:nowrap"><button class="ghost" data-op="${esc(x.id)}">فتح</button> <button class="ghost" data-dl="${esc(x.id)}">تنزيل</button> <button class="ghost" data-dx="${esc(x.id)}">حذف</button></td></tr>`).join(''):`<tr><td colspan="6" class="note">${dcCyc===-1?'ما فيه هويات مرفوعة بعد.':dcCyc===0?'ما فيه مستندات ثابتة بعد.':'ما فيه مستندات في هذي الدورة.'}</td></tr>`)}
 function readURL(f){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(f)})}
 async function shrink(f){if(!/^image\/(jpeg|png|webp|heic|heif)/.test(f.type)||f.size<350000)return{url:await readURL(f),type:f.type||'application/octet-stream',size:f.size};
   try{const u=await readURL(f),im=new Image();await new Promise((ok,no)=>{im.onload=ok;im.onerror=no;im.src=u});
@@ -438,11 +439,11 @@ $('#dcUp').addEventListener('click',async()=>{const m=$('#dcMsg'),fl=[...$('#dcF
   try{for(const [n,f] of fl.entries()){m.className='msg';m.textContent=`جارٍ رفع ${n+1} من ${fl.length}: ${f.name}…`;
       const r=await shrink(f);if(r.size>10*1048576){m.className='msg bad';m.textContent=`${f.name} أكبر من 10 ميجا، ما ينرفع.`;continue}
       const data=r.url.slice(r.url.indexOf(',')+1),parts=Math.ceil(data.length/PART)||1,id=farm+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-      const by=auth.currentUser?.email||'';const meta={farm,name:f.name,title:fl.length>1&&title?title+' ('+(n+1)+')':title,type:r.type,size:r.size,date,...(dcKind==='perm'?{perm:true,exp:$('#dcExp').value||''}:{cycle:cyc(farm)}),parts,by,at:Date.now(),done:false};
+      const by=auth.currentUser?.email||'';const meta={farm,name:f.name,title:fl.length>1&&title?title+' ('+(n+1)+')':title,type:r.type,size:r.size,date,...(dcKind==='ids'?{idcard:true,exp:$('#dcExp').value||''}:dcKind==='perm'?{perm:true,exp:$('#dcExp').value||''}:{cycle:cyc(farm)}),parts,by,at:Date.now(),done:false};
       await setDoc(doc(db,'files',id),meta);
       for(let i=0;i<parts;i++){m.textContent=`جارٍ رفع ${n+1} من ${fl.length}: ${f.name} (${Math.round(i/parts*100)}%)…`;await setDoc(doc(db,'fileparts',id+'_'+i),{farm,fid:id,i,data:data.slice(i*PART,(i+1)*PART)})}
       await setDoc(doc(db,'files',id),{...meta,done:true});ok++}
-    if(ok){dcCyc=dcKind==='perm'?0:cyc(farm);renderDocs();m.className='msg ok';m.textContent=dcKind==='perm'?`تم رفع ${ok} مستند ثابت.`:`تم رفع ${ok} مستند في الدورة ${cyc(farm)}.`;$('#dcExp').value='';$('#dcF').value='';$('#dcT').value=''}}
+    if(ok){dcCyc=dcKind==='ids'?-1:dcKind==='perm'?0:cyc(farm);renderDocs();m.className='msg ok';m.textContent=dcKind==='ids'?`تم رفع ${ok} هوية.`:dcKind==='perm'?`تم رفع ${ok} مستند ثابت.`:`تم رفع ${ok} مستند في الدورة ${cyc(farm)}.`;$('#dcExp').value='';$('#dcF').value='';$('#dcT').value=''}}
   catch(e){m.className='msg bad';m.textContent=e.code==='permission-denied'?'ما فيه صلاحية: لازم تضيف قواعد المستندات في Firebase.':'تعذّر الرفع: '+(e.message||e)}
   btn.disabled=false});
 async function fileBlob(x){const ps=[];for(let i=0;i<(x.parts||1);i++){const d=await getDoc(doc(db,'fileparts',x.id+'_'+i));if(!d.exists())throw new Error('ملف ناقص');ps.push(d.data().data)}
