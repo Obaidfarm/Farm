@@ -228,6 +228,7 @@ body.pm>*:not(#mPages){display:none!important}body.pm #mPages{display:block!impo
     </section>
 
     <section class="view" id="v-dash">
+      <div class="card own hide" style="margin-bottom:12px"><div style="font-weight:600;margin-bottom:8px">الحسابات</div><div class="scroll"><table class="sheds accT" style="font-size:13px"></table></div></div>
       <div class="card" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:12px">
         <label style="min-width:200px">تقرير يوم<input type="date" id="xd"></label>
         <button class="btn" id="xlsAll" type="button">تنزيل Excel للمزارع الثلاث</button>
@@ -291,7 +292,7 @@ body.pm>*:not(#mPages){display:none!important}body.pm #mPages{display:block!impo
     </section>
 
     <section class="view" id="v-settings">
-      <div class="card" style="max-width:760px;margin-bottom:14px"><h2 style="margin:0 0 10px">الحسابات</h2><div class="scroll"><table class="sheds" id="accTbl" style="font-size:14px"></table></div>
+      <div class="card" style="max-width:760px;margin-bottom:14px"><h2 style="margin:0 0 10px">الحسابات</h2><div class="scroll"><table class="sheds accT" id="accTbl" style="font-size:14px"></table></div>
         <p class="note" style="margin:8px 0 0">لإضافة كلمة مرور أو تغييرها: Firebase ← Authentication ← Users.</p></div>
       <form class="card form" id="sf" style="max-width:760px"></form>
       <p class="note">تواريخ استلام العنابر معبّأة من أوراقكم (من العمر يوم 18/11)، وعليها يتحسب العمر (old). في خانة «الرصيد قبل بداية التسجيل» اكتب رصيد كل عنبر (balance) من آخر ورقة مكتوبة باليد، واختر «بداية التسجيل في البرنامج» اليوم اللي بعدها. من بعدها يتحسب الرصيد لحاله: الرصيد − النفوق اليومي. عند بدء دورة جديدة غيّر التواريخ والأرصدة.</p>
@@ -532,7 +533,7 @@ const CYC_HEAD=['المزرعة','الدورة','من','إلى','الأيام','
 function cycRows(){const R=[];IDS.forEach(id=>{[...(farms[id].history||[]),{...cycleSummary(id),current:true}].forEach(c=>R.push([nm(id),c.cycle+(c.current?' (حالية)':''),c.start||'',c.current?'':c.end||'',c.days??'',c.received||0,c.mort||0,c.pct!=null?Math.round(c.pct*100)/100+'%':'',c.feedT||0,c.feedBags||0,...AGES.map(a=>c.w?.[a]??'')]))});return R}
 function renderCycles(){const R=cycRows();
   $('#cycT').innerHTML=`<thead><tr>${CYC_HEAD.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>`+R.map(r=>`<tr>${r.map((v,k)=>`<td class="c">${typeof v==='number'?fmt(v,k>=8?2:0):esc(v)}</td>`).join('')}</tr>`).join('')+'</tbody>'}
-function renderDash(){if(!admin)return;if(!$('#pmA').value)pmDefaults();renderCycles();let T={birds:0,mort:0,alive:0,feed:0};
+function renderDash(){if(!admin)return;renderAccounts();if(!$('#pmA').value)pmDefaults();renderCycles();let T={birds:0,mort:0,alive:0,feed:0};
   $('#cards').innerHTML=IDS.map(id=>{const s=stats(id);T.birds+=s.birds;T.mort+=s.mort;T.alive+=s.alive;T.feed+=s.feed;
     return `<div class="card fc" style="--c:${col(id)}"><h3>${esc(nm(id))}</h3><div class="age">${s.age!=null?'عمر القطيع: '+fmt(s.age)+' يوم · '+shedList(id).length+' عنبر':'حدّد تاريخ الاستلام من الإعدادات'}</div>
     <div class="big">${fmt(s.alive)}</div><div class="note">طائر حي من ${fmt(s.birds)}</div>
@@ -869,10 +870,10 @@ $('#sX').addEventListener('click',()=>{const m=$('#sM').value||curMonth(),[y,mo]
   save(new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel'}),`رواتب-${m}.xls`);$('#sMsg').className='msg ok';$('#sMsg').textContent='تم تنزيل الملف (المزارع الثلاث مع خانة التوقيع).'});
 
 /* ---------- settings ---------- */
-function renderAccounts(){const t=$('#accTbl');if(!t||!owner)return;
+function renderAccounts(){if(!owner)return;
   const A=[...ADMIN_EMAILS.map(e=>[e,'المدير','كل شيء']),...SUP_EMAILS.map(e=>[e,'المشرف (خلاد)','المزارع الثلاث كلها — ما عدا الرواتب والإعدادات']),...IDS.map(id=>[FARM_EMAILS[id],'مزرعة','مزرعة '+nm(id)+' فقط'])];
   const last={};[...entries,...invoices,...(files||[])].forEach(x=>{const b=low(x.by||''),a=+x.at||0;if(b&&a>(last[b]||0))last[b]=a});
-  t.innerHTML='<tr><th>الحساب</th><th>الدور</th><th>الصلاحيات</th><th>آخر إدخال</th></tr>'+A.map(([e,r,p])=>{const l=last[low(e)];return`<tr><td dir="ltr" style="font-size:13px">${esc(e)}</td><td><b>${esc(r)}</b></td><td style="text-align:start">${esc(p)}</td><td style="white-space:nowrap">${l?new Date(l).toLocaleString('ar-SA-u-nu-latn-ca-gregory',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}</td></tr>`}).join('')}
+  const H='<tr><th>الحساب</th><th>الدور</th><th>الصلاحيات</th><th>آخر إدخال</th></tr>'+A.map(([e,r,p])=>{const l=last[low(e)];return`<tr><td dir="ltr" style="font-size:13px">${esc(e)}</td><td><b>${esc(r)}</b></td><td style="text-align:start">${esc(p)}</td><td style="white-space:nowrap">${l?new Date(l).toLocaleString('ar-SA-u-nu-latn-ca-gregory',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}</td></tr>`}).join('');document.querySelectorAll('.accT').forEach(t=>t.innerHTML=H)}
 function renderSettings(){renderAccounts();if(!admin)return;
   $('#sf').innerHTML=IDS.map(id=>{const f=farms[id],sl=shedList(id);
     return `<fieldset data-id="${id}" style="border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;border-inline-start:5px solid var(--${id})"><legend style="padding:0 6px;font-weight:700">${esc(nm(id))}</legend>
