@@ -21,6 +21,7 @@ header{background:var(--head);color:#fff;padding:20px max(5vw,16px) 0}
 header h1{margin:0;font-size:clamp(24px,4vw,34px);line-height:1.1;font-weight:700}
 header p{margin:4px 0 14px;opacity:.8;font-size:14px}
 nav{display:flex;gap:4px;flex-wrap:wrap;padding-bottom:6px}nav a{border-radius:10px!important;padding:9px 12px!important}
+.wtab{border-collapse:collapse;background:#fff}.wtab th,.wtab td{border:1px solid #444!important;color:#111}.wtab thead th{background:#dfe9e2;font-weight:700;font-size:14px}.wtab tfoot td{background:#f1f5f2;font-weight:700}.wtab input{background:#fff!important;border:0!important;border-radius:0!important;box-shadow:none!important;color:#111;font-weight:600}.wtab input:focus{background:#fff6d6!important;outline:2px solid #d4a017}
 .nbadge{display:inline-block;min-width:20px;height:20px;line-height:20px;padding:0 6px;margin-inline-start:6px;border-radius:10px;background:#d93025;color:#fff;font-size:12px;font-weight:700;text-align:center}.nbadge.hide{display:none}
 #nToast{position:fixed;inset-inline:12px;bottom:16px;z-index:99;background:#1f4d3a;color:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 6px 24px rgba(0,0,0,.3);display:flex;gap:10px;align-items:center;cursor:pointer;line-height:1.6}
 nav a{flex:none;color:#fff;text-decoration:none;padding:12px 16px;border-radius:10px 10px 0 0;opacity:.8;font-weight:500}
@@ -715,7 +716,7 @@ function renderWeights(){if(!$('#wGrid'))return;
   drawGrid(vals);recalcW();renderWTable()}
 function drawGrid(vals){const n=Math.max(1,Math.min(200,Math.round(num($('#wN').value)||28))),per=Math.round(num($('#wP').value))||10,S=shedList(cur).length;
   $('#wHint').textContent=`عمر ${wAge}: كل حظيرة ${n} خانة، كل خانة وزن ${per} دجاجات = ${n*per} دجاجة. متوسط الحظيرة = مجموع عمودها ÷ عدد الدجاج الموزون.`;
-  const inp=(s,k)=>`<td style="padding:2px"><input type="text" inputmode="decimal" data-s="${s}" data-k="${k}" value="${vals[s]?.[k]??''}" style="width:100%;min-width:52px;min-height:38px;padding:4px 2px;text-align:center;border-radius:6px"></td>`;
+  const inp=(s,k)=>`<td style="padding:0"><input type="text" inputmode="decimal" data-s="${s}" data-k="${k}" value="${vals[s]?.[k]??''}" style="width:100%;min-width:52px;min-height:36px;padding:2px;text-align:center"></td>`;
   $('#wGrid').innerHTML=`<table class="sheds wtab" style="font-size:13px;min-width:${60+S*58}px"><thead><tr><th style="width:40px">م</th>${[...Array(S)].map((_,s)=>`<th>${s+1}</th>`).join('')}</tr></thead><tbody>`+
     [...Array(n)].map((_,k)=>`<tr><td class="c" style="color:var(--muted)">${k+1}</td>${[...Array(S)].map((_,s)=>inp(s,k)).join('')}</tr>`).join('')+
     `</tbody><tfoot><tr class="t"><td>المجموع</td>${[...Array(S)].map((_,s)=>`<td data-sum="${s}"></td>`).join('')}</tr><tr class="t"><td>÷</td>${[...Array(S)].map((_,s)=>`<td data-bird="${s}" style="font-weight:400;font-size:11px"></td>`).join('')}</tr><tr class="t"><td>المتوسط</td>${[...Array(S)].map((_,s)=>`<td data-avg="${s}" style="color:var(--green)"></td>`).join('')}</tr></tfoot></table>`}
