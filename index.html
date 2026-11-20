@@ -186,11 +186,10 @@ body.pm>*:not(#mPages){display:none!important}body.pm #mPages{display:block!impo
       <div class="card" style="display:grid;gap:14px">
         <div id="pickWrap6"><div class="note" style="margin-bottom:6px">المزرعة</div><div class="farms" id="pick6"></div></div>
         <label>اسم المستند (اختياري)<input type="text" id="dcT" maxlength="120" placeholder="مثال: سندات الصيصان، شهادة صحية، فاتورة كهرباء"></label>
-        <label style="max-width:260px">التاريخ<input type="date" id="dcD"></label>
         <label>اختر الملفات (صور، PDF، Excel، Word…)<input type="file" id="dcF" multiple accept="image/*,application/pdf,.pdf,.xls,.xlsx,.doc,.docx,.csv,.txt"></label>
         <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" type="button" id="dcUp">⬆ رفع المستندات</button></div>
         <div class="msg" id="dcMsg"></div>
-        <div class="note">الصور تُصغَّر تلقائياً عشان ترتفع بسرعة. أقصى حجم للملف الواحد 10 ميجا.</div>
+        <div class="note">كل مستند ينحفظ بتاريخ اليوم اللي انرفع فيه. الصور تُصغَّر تلقائياً عشان ترتفع بسرعة. أقصى حجم للملف الواحد 10 ميجا.</div>
       </div>
       <h2 id="dcTitle">المستندات</h2>
       <div class="card scroll"><table class="sheds" id="dcTable" style="font-size:14px"></table></div>
@@ -400,13 +399,13 @@ function start(){
 }
 
 /* ---------- documents ---------- */
-let files=[];const PART=700000;$('#dcD').value=today();
+let files=[];const PART=700000;
 const fsize=n=>n>=1048576?fmt(n/1048576,1)+' ميجا':fmt(Math.max(1,Math.round(n/1024)))+' كيلو';
 const ficon=t=>/^image\//.test(t)?'🖼':/pdf/.test(t)?'📄':/sheet|excel|csv/.test(t)?'📊':/word/.test(t)?'📝':'📎';
 function renderDocs(err){const t=$('#dcTable');if(!t)return;$('#dcTitle').textContent='المستندات — '+nm(cur);
   if(err||files===null){t.innerHTML=`<tr><td class="red">${err?.code==='permission-denied'?'لازم تضيف قواعد المستندات في Firebase أولاً.':'تعذّر تحميل المستندات.'}</td></tr>`;return}
   const L=files.filter(x=>x.farm===cur&&x.done).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.at||0)-(a.at||0));
-  t.innerHTML='<tr><th>التاريخ</th><th>المستند</th><th>الحجم</th><th>رفعه</th><th></th></tr>'+(L.length?L.map(x=>`<tr><td>${dshort(x.date)}</td><td style="text-align:start">${ficon(x.type)} ${esc(x.title||x.name)}${x.title&&x.title!==x.name?`<div class="note">${esc(x.name)}</div>`:''}</td><td>${fsize(x.size)}</td><td dir="ltr" style="font-size:12px">${esc((x.by||'').split('@')[0])}</td>
+  t.innerHTML='<tr><th>تاريخ الرفع</th><th>المستند</th><th>الحجم</th><th>رفعه</th><th></th></tr>'+(L.length?L.map(x=>`<tr><td style="white-space:nowrap">${x.date?x.date.slice(8,10)+'/'+x.date.slice(5,7)+'/'+x.date.slice(0,4):''}</td><td style="text-align:start">${ficon(x.type)} ${esc(x.title||x.name)}${x.title&&x.title!==x.name?`<div class="note">${esc(x.name)}</div>`:''}</td><td>${fsize(x.size)}</td><td dir="ltr" style="font-size:12px">${esc((x.by||'').split('@')[0])}</td>
     <td style="white-space:nowrap"><button class="ghost" data-op="${esc(x.id)}">فتح</button> <button class="ghost" data-dl="${esc(x.id)}">تنزيل</button> <button class="ghost" data-dx="${esc(x.id)}">حذف</button></td></tr>`).join(''):'<tr><td colspan="5" class="note">ما فيه مستندات لهذي المزرعة بعد.</td></tr>')}
 function readURL(f){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(f)})}
 async function shrink(f){if(!/^image\/(jpeg|png|webp|heic|heif)/.test(f.type)||f.size<350000)return{url:await readURL(f),type:f.type||'application/octet-stream',size:f.size};
@@ -416,7 +415,7 @@ async function shrink(f){if(!/^image\/(jpeg|png|webp|heic|heif)/.test(f.type)||f
     return out.length<u.length?{url:out,type:'image/jpeg',size:Math.round(out.length*0.75)}:{url:u,type:f.type,size:f.size}}catch(e){return{url:await readURL(f),type:f.type,size:f.size}}}
 $('#dcUp').addEventListener('click',async()=>{const m=$('#dcMsg'),fl=[...$('#dcF').files],btn=$('#dcUp');
   if(!fl.length){m.className='msg bad';m.textContent='اختر ملف أو أكثر أولاً.';return}
-  const farm=myFarm||cur,date=$('#dcD').value||today(),title=$('#dcT').value.trim();btn.disabled=true;let ok=0;
+  const farm=myFarm||cur,date=today(),title=$('#dcT').value.trim();btn.disabled=true;let ok=0;
   try{for(const [n,f] of fl.entries()){m.className='msg';m.textContent=`جارٍ رفع ${n+1} من ${fl.length}: ${f.name}…`;
       const r=await shrink(f);if(r.size>10*1048576){m.className='msg bad';m.textContent=`${f.name} أكبر من 10 ميجا، ما ينرفع.`;continue}
       const data=r.url.slice(r.url.indexOf(',')+1),parts=Math.ceil(data.length/PART)||1,id=farm+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
