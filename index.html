@@ -329,27 +329,23 @@ const firebaseConfig = {
 };
 
 
-const ADMIN_EMAILS = ["somaa0012@gmail.com"];
-const SUP_EMAILS = ["khaladspeed300@gmail.com"]; /* خلاد: كل شيء ما عدا الرواتب والإعدادات */
-
-
-const FARM_EMAILS = {
-  f1: "khogalialkahli@gmail.com",
-  f2: "soheapsalih83@gmail.com",
-  f3: "whbyhsbalrswl@gmail.com"
-};
+/* الحسابات محفوظة كبصمات (SHA-256) فقط — الإيميلات نفسها غير موجودة في الملف */
+const ADMIN_H = ["809bf7e28d913eacb3ac8a69853ea484e28b6f45f2d0c6e10d3d7108521da7ac"];
+const SUP_H = ["55dd530670cdaa439db5ff705320b919ef16f39166ccd1ed7ac8fa0ea40db354"];
+const FARM_H = {f1:"b3380583c81fb392a7f62bb0e7eda36f1eaffecdc097f46ca8deb6d3ecc7564a",f2:"c3c4070c59867e270638e1d9a71f89e4356c6f01bed2e5c327d5c1126468128f",f3:"e0a8e3e3665aee76bfbbdd1eefcd05b146879dd6efb3759b22c096fbae1ec9a7"};
+const sha=async t=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(t||'').trim().toLowerCase())))].map(b=>b.toString(16).padStart(2,'0')).join('');
 
 const $=s=>document.querySelector(s);
 const showErr=t=>{const c=document.getElementById('conn');if(c){c.className='msg bad';c.textContent='خطأ: '+t}};
 addEventListener('error',e=>showErr(e.message||e));
 addEventListener('unhandledrejection',e=>showErr(e.reason?.message||e.reason));
 const IDS=['f1','f2','f3'];
-const DEF={f1:{name:'المزرعة خليص',birds:408000,start:'2026-11-04',openDate:'2026-11-04',shedCount:15,sheds:[{birds:27200,start:'2026-11-04',feed0:217},{birds:27200,start:'2026-11-04',feed0:197},{birds:27200,start:'2026-11-04',feed0:197},{birds:27200,start:'2026-11-04',feed0:197},{birds:26917,start:'2026-11-04',feed0:197},{birds:27200,start:'2026-11-04',feed0:197},{birds:28036,start:'2026-11-04',feed0:197},{birds:27119,start:'2026-11-05',feed0:201},{birds:27119,start:'2026-11-05',feed0:201},{birds:27972,start:'2026-11-05',feed0:201},{birds:27265,start:'2026-11-05',feed0:202},{birds:27219,start:'2026-11-05',feed0:202},{birds:27119,start:'2026-11-05',feed0:222},{birds:26619,start:'2026-11-05',feed0:202},{birds:26615,start:'2026-11-05',feed0:202}]},f2:{name:'المزرعة رابغ',birds:265200,start:'2026-11-07',openDate:'2026-11-07',shedCount:12,sheds:[{birds:22600,start:'2026-11-07'},{birds:22600,start:'2026-11-07'},{birds:22600,start:'2026-11-07'},{birds:22600,start:'2026-11-09'},{birds:22600,start:'2026-11-09'},{birds:22600,start:'2026-11-09'},{birds:22600,start:'2026-11-09'},{birds:21100,start:'2026-11-09'},{birds:21100,start:'2026-11-09'},{birds:21100,start:'2026-11-08'},{birds:21100,start:'2026-11-08'},{birds:22600,start:'2026-11-08'}]},f3:{name:'المزرعة قديد',birds:239730,start:'2026-11-10',openDate:'2026-11-10',shedCount:10,sheds:[{birds:21755,start:'2026-11-10'},{birds:21650,start:'2026-11-10'},{birds:22436,start:'2026-11-10'},{birds:21500,start:'2026-11-10'},{birds:20550,start:'2026-11-10'},{birds:26500,start:'2026-11-11'},{birds:26500,start:'2026-11-11'},{birds:26500,start:'2026-11-11'},{birds:26500,start:'2026-11-11'},{birds:25839,start:'2026-11-11'}]}};
+const DEF={f1:{name:'المزرعة خليص',birds:0,start:'2026-11-04',openDate:'2026-11-04',shedCount:15,sheds:[{birds:0,start:'2026-11-04',feed0:0},{birds:0,start:'2026-11-04',feed0:0},{birds:0,start:'2026-11-04',feed0:0},{birds:0,start:'2026-11-04',feed0:0},{birds:0,start:'2026-11-04',feed0:0},{birds:0,start:'2026-11-04',feed0:0},{birds:0,start:'2026-11-04',feed0:0},{birds:0,start:'2026-11-05',feed0:0},{birds:0,start:'2026-11-05',feed0:0},{birds:0,start:'2026-11-05',feed0:0},{birds:0,start:'2026-11-05',feed0:0},{birds:0,start:'2026-11-05',feed0:0},{birds:0,start:'2026-11-05',feed0:0},{birds:0,start:'2026-11-05',feed0:0},{birds:0,start:'2026-11-05',feed0:0}]},f2:{name:'المزرعة رابغ',birds:0,start:'2026-11-07',openDate:'2026-11-07',shedCount:12,sheds:[{birds:0,start:'2026-11-07'},{birds:0,start:'2026-11-07'},{birds:0,start:'2026-11-07'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-09'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-08'},{birds:0,start:'2026-11-08'}]},f3:{name:'المزرعة قديد',birds:0,start:'2026-11-10',openDate:'2026-11-10',shedCount:10,sheds:[{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-10'},{birds:0,start:'2026-11-11'},{birds:0,start:'2026-11-11'},{birds:0,start:'2026-11-11'},{birds:0,start:'2026-11-11'},{birds:0,start:'2026-11-11'}]}};
 const OLD_DATES={f1:'2026-11-03,'.repeat(7)+'2026-11-04,'.repeat(8),f2:'2026-11-06,'.repeat(3)+'2026-11-08,'.repeat(6)+'2026-11-07,'.repeat(3),f3:'2026-11-09,'.repeat(5)+'2026-11-10,'.repeat(5)};
 let invoices=[],invFarm='f1',farms=structuredClone(DEF),entries=[],admin=false,owner=false,myFarm=null,cur='f1',chartKey='mortality',filter='all',unsubs=[];
 
 const app=initializeApp(firebaseConfig);
-const auth=getAuth(app);
+const auth=getAuth(app);function idleArm(){}
 let db;try{db=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})})}catch(e){db=initializeFirestore(app,{})}
 
 const low=s=>String(s||'').trim().toLowerCase();
@@ -361,7 +357,7 @@ const nm=id=>farms[id]?.name||DEF[id]?.name||id;
 const addDays=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
 const dayDiff=(a,b)=>Math.round((new Date(a+'T12:00:00')-new Date(b+'T12:00:00'))/864e5);
 const dshort=s=>new Date(s+'T12:00:00').toLocaleDateString('ar-SA-u-ca-gregory-nu-latn',{day:'numeric',month:'short'});
-const farmOfEmail=e=>{for(const id of IDS)if(low(FARM_EMAILS[id])===low(e))return id;return null};
+const farmOfHash=h=>{for(const id of IDS)if(FARM_H[id]===h)return id;return null};
 const toEn=s=>String(s??'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٬,]/g,'').replace('٫','.').trim();
 const num=v=>{if(v===''||v==null)return 0;const n=+String(toEn(v)).replace(/[,٬\s]/g,'');return isFinite(n)?n:0};
 
@@ -394,9 +390,9 @@ $('#lf').addEventListener('submit',async e=>{e.preventDefault();const m=$('#lmsg
   catch(x){m.className='msg bad';m.textContent='البريد أو كلمة المرور غير صحيحة.'}});
 $('#out').addEventListener('click',()=>signOut(auth));
 
-onAuthStateChanged(auth,u=>{unsubs.forEach(f=>f());notedIds=null;hiSeen=null;wasNotes=false;unsubs=[];entries=[];invoices=[];
+onAuthStateChanged(auth,async u=>{unsubs.forEach(f=>f());notedIds=null;hiSeen=null;wasNotes=false;unsubs=[];entries=[];invoices=[];
   if(!u){$('#login').classList.remove('hide');$('#app').classList.add('hide');$('#nav').classList.add('hide');return}
-  owner=ADMIN_EMAILS.map(low).includes(low(u.email));admin=owner||SUP_EMAILS.map(low).includes(low(u.email));myFarm=farmOfEmail(u.email);
+  const uh=await sha(u.email);owner=ADMIN_H.includes(uh);admin=owner||SUP_H.includes(uh);myFarm=farmOfHash(uh);idleArm();
   if(!admin&&!myFarm){showErr('هذا الحساب غير مربوط بأي مزرعة.');signOut(auth);return}
   $('#conn').textContent='';
   $('#login').classList.add('hide');$('#app').classList.remove('hide');permUI();$('#nav').classList.remove('hide');
@@ -998,10 +994,11 @@ $('#sX').addEventListener('click',()=>{const m=$('#sM').value||curMonth(),[y,mo]
   save(new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel'}),`رواتب-${m}.xls`);$('#sMsg').className='msg ok';$('#sMsg').textContent='تم تنزيل الملف (المزارع الثلاث مع خانة التوقيع).'});
 
 /* ---------- settings ---------- */
-function renderAccounts(){if(!owner)return;
-  const A=[...ADMIN_EMAILS.map(e=>[e,'المدير','كل شيء']),...SUP_EMAILS.map(e=>[e,'المشرف (خلاد)','المزارع الثلاث كلها — ما عدا الرواتب والإعدادات']),...IDS.map(id=>[FARM_EMAILS[id],'مزرعة','مزرعة '+nm(id)+' فقط'])];
-  const last={};[...entries,...invoices,...(files||[])].forEach(x=>{const b=low(x.by||''),a=+x.at||0;if(b&&a>(last[b]||0))last[b]=a});
-  const H='<tr><th>الحساب</th><th>الدور</th><th>الصلاحيات</th><th>آخر إدخال</th></tr>'+A.map(([e,r,p])=>{const l=last[low(e)];return`<tr><td dir="ltr" style="font-size:13px">${esc(e)}</td><td><b>${esc(r)}</b></td><td style="text-align:start">${esc(p)}</td><td style="white-space:nowrap">${l?new Date(l).toLocaleString('ar-SA-u-nu-latn-ca-gregory',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}</td></tr>`}).join('');document.querySelectorAll('.accT').forEach(t=>t.innerHTML=H)}
+async function renderAccounts(){if(!owner)return;
+  const A=[[ADMIN_H[0],'المدير','كل شيء'],[SUP_H[0],'المشرف (خلاد)','المزارع الثلاث كلها — ما عدا الرواتب والإعدادات'],...IDS.map(id=>[FARM_H[id],'مزرعة',nm(id)+' فقط'])];
+  const last={};for(const x of [...entries,...invoices,...(files||[])]){const b=x.by||'';if(!b)continue;const a=typeof x.at==='number'?x.at:Date.parse(x.at)||0;const k=await sha(b);if(a>(last[k]||0))last[k]=a}
+  const H='<tr><th>الحساب</th><th>الصلاحيات</th><th>آخر إدخال</th></tr>'+A.map(([h,r,p])=>{const l=last[h];return`<tr><td><b>${esc(r)}</b></td><td style="text-align:start">${esc(p)}</td><td style="white-space:nowrap">${l?new Date(l).toLocaleString('ar-SA-u-nu-latn-ca-gregory',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}</td></tr>`}).join('');
+  document.querySelectorAll('.accT').forEach(t=>t.innerHTML=H)}
 function renderSettings(){renderAccounts();if(!admin)return;
   $('#sf').innerHTML=IDS.map(id=>{const f=farms[id],sl=shedList(id);
     return `<fieldset data-id="${id}" style="border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;border-inline-start:5px solid var(--${id})"><legend style="padding:0 6px;font-weight:700">${esc(nm(id))}</legend>
