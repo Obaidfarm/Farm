@@ -298,7 +298,7 @@ body.pm>*:not(#mPages){display:none!important}body.pm #mPages{display:block!impo
           <label>علف ثاني (طن)<input type="number" id="i2" min="0" step="0.01" inputmode="decimal"></label>
           <label>علف ثالث (طن)<input type="number" id="i3" min="0" step="0.01" inputmode="decimal"></label>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" type="submit">إضافة الفاتورة</button><button class="ghost" type="button" id="invX">تنزيل فواتير هذه المزرعة Excel</button><button class="ghost adm" type="button" id="invXAll">تنزيل المزارع الثلاث (3 ملفات)</button></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" type="submit">إضافة الفاتورة</button><button class="ghost" type="button" id="invX">تنزيل فواتير هذه المزرعة Excel</button><button class="ghost adm" type="button" id="invXOne">تنزيل المزارع الثلاث (ملف واحد)</button><button class="ghost adm" type="button" id="invXAll">تنزيل المزارع الثلاث (3 ملفات)</button></div>
         <div class="msg" id="iMsg"></div>
       </form>
       <h2 id="invT">فواتير العلف</h2>
@@ -727,7 +727,8 @@ $('#invF').addEventListener('submit',async e=>{e.preventDefault();const m=$('#iM
 $('#invTable').addEventListener('click',async e=>{const b=e.target.closest('[data-idel]');if(!b)return;
   if(b.dataset.c!=='1'){b.dataset.c='1';b.textContent='تأكيد';b.classList.add('red');return}
   b.disabled=true;try{await deleteDoc(doc(db,'invoices',b.dataset.idel))}catch(x){b.disabled=false;b.textContent='تعذّر'}});
-$('#invX').addEventListener('click',()=>downloadXlsx([invFarm],today(),$('#iMsg'),true));$('#invXAll').addEventListener('click',async()=>{const m=$('#iMsg');for(const [k,id] of IDS.entries()){await downloadXlsx([id],today(),m,true);if(k<IDS.length-1)await new Promise(r=>setTimeout(r,1200))}m.className='msg ok';m.textContent='نزلت 3 ملفات: خليص، رابغ، قديد — كل مزرعة في ملف. لو نزل ملف واحد بس، اسمح للموقع بتنزيل عدة ملفات.'});
+$('#invX').addEventListener('click',()=>downloadXlsx([invFarm],today(),$('#iMsg'),true));$('#invXOne').addEventListener('click',()=>downloadXlsx(IDS,today(),$('#iMsg'),true));
+$('#invXAll').addEventListener('click',async()=>{const m=$('#iMsg');for(const [k,id] of IDS.entries()){await downloadXlsx([id],today(),m,true);if(k<IDS.length-1)await new Promise(r=>setTimeout(r,1200))}m.className='msg ok';m.textContent='نزلت 3 ملفات: خليص، رابغ، قديد — كل مزرعة في ملف. لو نزل ملف واحد بس، اسمح للموقع بتنزيل عدة ملفات.'});
 
 /* ---------- weights ---------- */
 const AGES=[7,14,21,25,26,27,28,29],SAMPLE=240;
