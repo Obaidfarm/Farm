@@ -548,7 +548,7 @@ function stats(id){const st=farmStart(id),list=entries.filter(e=>e.farm===id&&(!
   const from=addDays(today(),-6),w=list.filter(e=>e.date>=from).reduce((s,e)=>s+(+e.mortality||0),0);
   const age=st&&today()>=st?dayDiff(today(),st)+1:null;
   return{mort,feed,alive,birds,pct:birds>0?mort/birds*100:null,perBird:alive>0?feed/alive:null,t,w,age}}
-const CYC_HEAD=['المزرعة','الدورة','من','إلى','الأيام','المستلم','النفوق','نسبة النفوق','فواتير العلف (طن)','علف العنابر','وزن 7','وزن 14','وزن 21','وزن 28'];
+const CYC_HEAD=['المزرعة','الدورة','من','إلى','الأيام','المستلم','النفوق','نسبة النفوق','فواتير العلف (طن)','علف العنابر',...[7,14,21,25,26,27,28,29].map(a=>'وزن '+a)];
 function cycRows(){const R=[];IDS.forEach(id=>{[...(farms[id].history||[]),{...cycleSummary(id),current:true}].forEach(c=>R.push([nm(id),c.cycle+(c.current?' (حالية)':''),c.start||'',c.current?'':c.end||'',c.days??'',c.received||0,c.mort||0,c.pct!=null?Math.round(c.pct*100)/100+'%':'',c.feedT||0,c.feedBags||0,...AGES.map(a=>c.w?.[a]??'')]))});return R}
 let dpFarm='all';
 function dailyPct(id){const st=farmStart(id);if(!st)return[];const end=today();const out=[];const birds=received(id);let cum=0;
@@ -730,7 +730,7 @@ $('#invTable').addEventListener('click',async e=>{const b=e.target.closest('[dat
 $('#invX').addEventListener('click',()=>downloadXlsx([invFarm],today(),$('#iMsg'),true));$('#invXAll').addEventListener('click',async()=>{const m=$('#iMsg');for(const [k,id] of IDS.entries()){await downloadXlsx([id],today(),m,true);if(k<IDS.length-1)await new Promise(r=>setTimeout(r,1200))}m.className='msg ok';m.textContent='نزلت 3 ملفات: خليص، رابغ، قديد — كل مزرعة في ملف. لو نزل ملف واحد بس، اسمح للموقع بتنزيل عدة ملفات.'});
 
 /* ---------- weights ---------- */
-const AGES=[7,14,21,28],SAMPLE=240;
+const AGES=[7,14,21,25,26,27,28,29],SAMPLE=240;
 const wCfg=a=>a===7?{per:10,cells:28}:{per:5,cells:28};
 let wAge=7;
 const wInC=(x,id,a,c)=>x.kind==='w'&&x.farm===id&&x.age===a&&(+x.cycle||BASE_CYC[id])===c;
