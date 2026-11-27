@@ -152,7 +152,9 @@ body.pm>*:not(#mPages){display:none!important}body.pm #mPages{display:block!impo
         <div class="note" id="wShedN"></div>
         <div id="wGrid" class="scroll" style="overflow-x:auto;max-width:100%"></div>
         <div class="card" id="wSum" style="background:var(--bg);display:flex;gap:18px;flex-wrap:wrap"></div>
-        <button class="ghost" type="button" id="wMore" style="justify-self:start">+ إضافة 4 صفوف</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="ghost" type="button" id="wMore">+ إضافة 4 صفوف</button><button class="ghost" type="button" id="wPasteB">📋 لصق أوزان جاهزة</button></div>
+        <div id="wPasteBox" class="hide" style="display:grid;gap:8px"><textarea id="wPasteT" rows="6" dir="ltr" placeholder="الصق الأرقام هنا: كل سطر = صف، وكل عمود = حظيرة (1، 2، 3…)" style="width:100%;font-family:monospace"></textarea>
+          <div style="display:flex;gap:8px"><button class="btn" type="button" id="wPasteGo">تعبئة الجدول</button><button class="ghost" type="button" id="wPasteX">إلغاء</button></div></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="wSave" type="submit">حفظ الوزن</button><button class="ghost" type="button" id="wX">تنزيل أوزان هذه المزرعة Excel</button><button class="ghost adm" type="button" id="wXAll">تنزيل المزارع الثلاث Excel</button></div>
         <div class="msg" id="wMsg"></div>
       </form>
@@ -770,6 +772,13 @@ $('#wAges').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if
 $('#wGrid').addEventListener('input',recalcW);
 $('#wGrid').addEventListener('keydown',e=>{if(e.key!=='Enter'||!e.target.dataset.k)return;e.preventDefault();const s=e.target.dataset.s,k=+e.target.dataset.k+1;const nx=$(`#wGrid input[data-s="${s}"][data-k="${k}"]`)||$(`#wGrid input[data-s="${+s+1}"][data-k="0"]`);nx&&nx.focus()});
 $('#wN').addEventListener('change',()=>{drawGrid(readW());recalcW()});$('#wP').addEventListener('input',()=>{const v=readW();drawGrid(v);recalcW()});
+$('#wPasteB').addEventListener('click',()=>{$('#wPasteBox').classList.toggle('hide');$('#wPasteT').focus()});
+$('#wPasteX').addEventListener('click',()=>{$('#wPasteBox').classList.add('hide');$('#wPasteT').value=''});
+$('#wPasteGo').addEventListener('click',()=>{const L=$('#wPasteT').value.trim().split(/\r?\n/).map(l=>l.trim().split(/[\s,;\t]+/).filter(Boolean).map(toEn));
+  if(!L.length||!L[0].length)return;const S=shedList(cur).length,v=readW(),n=Math.max(v[0]?.length||28,L.length);
+  for(let s=0;s<S;s++){v[s]=v[s]||[];while(v[s].length<n)v[s].push('')}
+  L.forEach((row,k)=>row.forEach((x,s)=>{if(s<S&&x!=='')v[s][k]=num(x)}));$('#wN').value=n;drawGrid(v);recalcW();
+  $('#wPasteBox').classList.add('hide');$('#wPasteT').value='';const m=$('#wMsg');m.className='msg ok';m.textContent=`تعبّى الجدول (${L.length} صف). راجع الأرقام واضغط «حفظ الوزن».`});
 $('#wMore').addEventListener('click',()=>{const v=readW();$('#wN').value=(v[0]?.length||28)+4;drawGrid(v);recalcW()});$('#wU').addEventListener('change',recalcW);
 $('#wF').addEventListener('submit',async e=>{e.preventDefault();const m=$('#wMsg'),W=readW();
   if(!W.some(c=>c.some(v=>v!==''))){m.className='msg bad';m.textContent='اكتب أوزان الخانات أولاً.';return}
